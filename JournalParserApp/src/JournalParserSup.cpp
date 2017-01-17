@@ -39,13 +39,13 @@
 
 static std::string getJV(pugi::xml_node& node, const std::string& name)
 { 
-	// check title for change to for &amp; &lt; &gt;
+	// check title for characters to escape
     std::string value = node.child_value(name.c_str());
     boost::trim(value);
-	// need these for Slack messages
+	// always needed for slack messages 
+    boost::replace_all(value, "&", "&amp;");
     boost::replace_all(value, "<", "&lt;");
     boost::replace_all(value, ">", "&gt;");
-    boost::replace_all(value, "&", "&amp;");
     return value;
 }
 	
@@ -64,7 +64,7 @@ static std::string exeCWD()
 /// computer_name = argv[5];  // e.g. NDXGEM
 int parseJournal(const std::string& file_prefix, const std::string& run_number, const std::string& isis_cycle, const std::string& journal_dir, const std::string& computer_name)
 {
-	int pos = isis_cycle.find("_");
+	size_t pos = isis_cycle.find("_");
 	if (pos == std::string::npos)
 	{
 		std::cerr << "JournalParser: Cycle name syntax incorrect" << std::endl;
@@ -104,26 +104,33 @@ int parseJournal(const std::string& file_prefix, const std::string& run_number, 
     pugi::xpath_node main_entry = doc.select_single_node(main_entry_xpath.c_str());
 	std::ostringstream mess;
 	pugi::xml_node& entry = main_entry.node();
-//  getJV(entry, "start_time") << " finished " << getJV(entry, "end_time") 
-	mess << "Run " << getJV(entry, "run_number") << " finished (" << getJV(entry, "proton_charge") << " uAh, " << getJV(entry, "good_frames") << " frames, " << getJV(entry, "duration") << " seconds, " << getJV(entry, "total_mevents") << " MEvents)\n";
-    mess << "Title: " << getJV(entry, "title");
+	// we need to have title in a ``` so if it contains markdown like 
+	// characters they are not interpreted
+	mess << "Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "total_mevents") << "* MEvents) ```" << getJV(entry, "title") << "```";
 	std::cerr << mess.str() << std::endl;
-	
 	std::string inst_name = computer_name.substr(3); // after NDX
 	boost::to_lower(inst_name);
-	std::string slack_channel = "#journal_" + inst_name;		
-	std::string config_file = exeCWD() + "\\JournalParser.config";
+//	std::string slack_channel = "#journal_" + inst_name;
+	std::string slack_channel = "#test";
+	std::string config_file = exeCWD() + "\\JournalParser.conf";
 	std::ifstream fs;
-	fs.open(config_file.c_str());
+	fs.open(config_file.c_str(), std::ios::in);
 	if (fs.good())
 	{
 		std::string api_token;
 		std::getline(fs, api_token);
 		fs.close();
-	    auto& slack = slack::create(api_token); 
-        slack.chat.channel = slack_channel;  
-	    slack.chat.as_user = true;
-//       slack.chat.postMessage(mess.str());
+		try
+		{
+	        auto& slack = slack::create(api_token);
+            slack.chat.channel = slack_channel;
+	        slack.chat.as_user = true;
+            slack.chat.postMessage(mess.str());
+		}
+		catch(const std::exception& ex)
+		{
+			std::cerr << "JournalParser: slack error: " << ex.what() << std::endl;
+		}
 	}
 	else
 	{
