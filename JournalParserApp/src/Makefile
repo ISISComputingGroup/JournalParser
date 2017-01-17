@@ -7,8 +7,10 @@ include $(TOP)/configure/CONFIG
 
 #==================================================
 # build a support library
-
+ifneq ($(findstring 14.0,$(VCVERSION)),)
 LIBRARY_IOC += JournalParserSup
+PROD_IOC += JournalParser
+endif
 
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord
@@ -29,7 +31,6 @@ JournalParserSup_LIBS_WIN32 += libcurl
 JournalParserSup_SYS_LIBS_Linux += curl
 JournalParserSup_LIBS += $(EPICS_BASE_IOC_LIBS)
 
-PROD_IOC += JournalParser
 JournalParser_LIBS += JournalParserSup 
 JournalParser_LIBS += pugixml zlib
 JournalParser_LIBS_WIN32 += libcurl
