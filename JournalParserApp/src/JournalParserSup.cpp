@@ -100,8 +100,9 @@ int parseJournal(const std::string& file_prefix, const std::string& run_number, 
 		std::cerr << "JournalParser: Cannot parse \"" << journal_file << "\"" << std::endl; 
 		return -1;
     }
-    std::string main_entry_xpath = "/NXroot/NXentry[@name='" + file_prefix + run_number + "']";    
-    pugi::xpath_node main_entry = doc.select_single_node(main_entry_xpath.c_str());
+	char main_entry_xpath[128];
+	sprintf(main_entry_xpath, "/NXroot/NXentry[@name='%s%08d']", file_prefix.c_str(), atoi(run_number.c_str()));
+    pugi::xpath_node main_entry = doc.select_single_node(main_entry_xpath);
 	std::ostringstream mess;
 	pugi::xml_node& entry = main_entry.node();
 	// we need to have title in a ``` so if it contains markdown like 
@@ -110,8 +111,8 @@ int parseJournal(const std::string& file_prefix, const std::string& run_number, 
 	std::cerr << mess.str() << std::endl;
 	std::string inst_name = computer_name.substr(3); // after NDX
 	boost::to_lower(inst_name);
-//	std::string slack_channel = "#journal_" + inst_name;
-	std::string slack_channel = "#test";
+	std::string slack_channel = "#journal_" + inst_name;
+//	std::string slack_channel = "#test";
 	std::string config_file = exeCWD() + "\\JournalParser.conf";
 	std::ifstream fs;
 	fs.open(config_file.c_str(), std::ios::in);
