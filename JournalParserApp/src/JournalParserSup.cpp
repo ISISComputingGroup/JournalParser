@@ -71,6 +71,7 @@ int parseJournal(const std::string& file_prefix, const std::string& run_number, 
 		return -1;		
 	}
 	std::string journal_file = journal_dir + "\\journal_" + isis_cycle.substr(pos+1) + ".xml";
+	std::string inst_name = computer_name.substr(3); // after NDX
     struct stat st;
 	if (stat(journal_file.c_str(), &st) != 0)
 	{
@@ -101,7 +102,7 @@ int parseJournal(const std::string& file_prefix, const std::string& run_number, 
 		return -1;
     }
 	char main_entry_xpath[128];
-	sprintf(main_entry_xpath, "/NXroot/NXentry[@name='%s%08d']", file_prefix.c_str(), atoi(run_number.c_str()));
+	sprintf(main_entry_xpath, "/NXroot/NXentry[@name='%s%08d']", inst_name.c_str(), atoi(run_number.c_str()));
     pugi::xpath_node main_entry = doc.select_single_node(main_entry_xpath);
 	std::ostringstream mess;
 	pugi::xml_node& entry = main_entry.node();
@@ -109,7 +110,6 @@ int parseJournal(const std::string& file_prefix, const std::string& run_number, 
 	// characters they are not interpreted
 	mess << "Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "total_mevents") << "* MEvents) ```" << getJV(entry, "title") << "```";
 	std::cerr << mess.str() << std::endl;
-	std::string inst_name = computer_name.substr(3); // after NDX
 	boost::to_lower(inst_name);
 	std::string slack_channel = "#journal_" + inst_name;
 //	std::string slack_channel = "#test";
