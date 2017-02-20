@@ -108,7 +108,11 @@ int parseJournal(const std::string& file_prefix, const std::string& run_number, 
 	pugi::xml_node& entry = main_entry.node();
 	// we need to have title in a ``` so if it contains markdown like 
 	// characters they are not interpreted
-	mess << "Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "total_mevents") << "* MEvents) ```" << getJV(entry, "title") << "```";
+	time_t now;
+	time(&now);
+	char tbuffer[64];
+	strftime(tbuffer, sizeof(tbuffer), "%a %d %b %H:%M", localtime(&now));
+	mess << tbuffer << " Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "total_mevents") << "* MEvents) ```" << getJV(entry, "title") << "```";
 	std::cerr << mess.str() << std::endl;
 	boost::to_lower(inst_name);
 	std::string slack_channel = "#journal_" + inst_name;
