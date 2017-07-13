@@ -108,11 +108,13 @@ int parseJournal(const std::string& file_prefix, const std::string& run_number, 
 	pugi::xml_node& entry = main_entry.node();
 	// we need to have title in a ``` so if it contains markdown like 
 	// characters they are not interpreted
+	const char* collect_mode = (atof(getJV(entry, "event_mode").c_str()) > 0.0 ? "*event* mode" : "*histogram* mode");
 	time_t now;
 	time(&now);
 	char tbuffer[64];
 	strftime(tbuffer, sizeof(tbuffer), "%a %d %b %H:%M", localtime(&now));
-	mess << tbuffer << " Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "total_mevents") << "* MEvents) ```" << getJV(entry, "title") << "```";
+	// << getJV(entry, "monitor_sum") << "* monitor spectrum " << getJV(entry, "monitor_spectrum") << " sum, *" 
+	mess << tbuffer << " Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "number_spectra") << "* spectra, *" << getJV(entry, "number_periods") << "* periods, " << collect_mode << ", *" << getJV(entry, "total_mevents") << "* total DAE MEvents) ```" << getJV(entry, "title") << "```";
 	std::cerr << mess.str() << std::endl;
 	boost::to_lower(inst_name);
 	std::string slack_channel = "#journal_" + inst_name;
