@@ -34,6 +34,8 @@
 
 int main(int argc, char* argv[])
 {
+	time_t time1, time2;
+	time(&time1);
 	if (argc < 6)
 	{
 		std::cerr << "JournalParser: Not enough arguments" << std::endl;
@@ -44,5 +46,8 @@ int main(int argc, char* argv[])
 	std::string isis_cycle = argv[3];  // e.g. cycle_14_2
 	std::string journal_dir = argv[4];  // e.g. c:\data\export only
 	std::string computer_name = argv[5];  // e.g. NDXGEM
-    return parseJournal(file_prefix, run_number, isis_cycle, journal_dir, computer_name);
+    int stat = parseJournal(file_prefix, run_number, isis_cycle, journal_dir, computer_name);
+	time(&time2);
+	std::cerr << "JournalParser: took " << difftime(time2, time1) << " seconds" << std::endl;
+	return stat;
 }
