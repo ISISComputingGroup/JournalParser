@@ -7,10 +7,8 @@ include $(TOP)/configure/CONFIG
 
 #==================================================
 # build a support library
-ifneq ($(findstring 14.0,$(VCVERSION)),)
 LIBRARY_IOC += JournalParserSup
 PROD_IOC += JournalParser
-endif
 
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord
@@ -29,14 +27,20 @@ JournalParserSup_SRCS += JournalParserSup.cpp
 JournalParserSup_LIBS += pugixml
 JournalParserSup_LIBS_WIN32 += libcurl
 JournalParserSup_SYS_LIBS_Linux += curl
-JournalParserSup_LIBS += $(EPICS_BASE_IOC_LIBS)
+JournalParserSup_LIBS += $(EPICS_BASE_IOC_LIBS) $(MYSQLLIB)
 
-JournalParser_LIBS += JournalParserSup 
+JournalParser_LIBS += JournalParserSup $(MYSQLLIB) utilities
 JournalParser_LIBS += pugixml zlib
 JournalParser_LIBS_WIN32 += libcurl
 JournalParser_SYS_LIBS_WIN32 += wldap32
 JournalParser_SYS_LIBS_Linux += curl
 JournalParser_LIBS += $(EPICS_BASE_IOC_LIBS)
+
+# ifeq ($(SHARED_LIBRARIES),YES)
+# USR_CPPFLAGS_WIN32 += -DSQLITE_API=__declspec(dllimport)
+# else
+# #USR_CXXFLAGS += -DCPPCONN_LIB_BUILD
+# endif
 
 #===========================
 

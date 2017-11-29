@@ -18,6 +18,11 @@
 #include <fstream>
 #include <map>
 
+#include <stdexcept>
+#include <string>
+#include <time.h>
+#include <sstream>
+
 #include <epicsTypes.h>
 #include <epicsTime.h>
 #include <epicsThread.h>
@@ -28,6 +33,20 @@
 #include <errlog.h>
 #include <iocsh.h>
 #include <epicsExit.h>
+
+#include "macLib.h"
+
+// mysql
+#include <cppconn/driver.h>
+#include <cppconn/exception.h>
+#include <cppconn/warning.h>
+#include <cppconn/metadata.h>
+#include <cppconn/prepared_statement.h>
+#include <cppconn/resultset.h>
+#include <cppconn/resultset_metadata.h>
+#include <cppconn/statement.h>
+#include "mysql_driver.h"
+#include "mysql_connection.h"
 
 #include <pugixml.hpp>
 #include <boost/algorithm/string.hpp>
@@ -57,12 +76,40 @@ static std::string exeCWD()
     return std::string(buffer).substr(0, pos);
 }
 
-/// file_prefix = argv[1]; // could be inst name or inst short name
-/// run_number = argv[2];  // 5 or 8 digit with leading zeros
-/// isis_cycle = argv[3];  // e.g. cycle_14_2
-///	const char* journal_dir = argv[4];  // e.g. c:\data\export only
-/// computer_name = argv[5];  // e.g. NDXGEM
-int parseJournal(const std::string& file_prefix, const std::string& run_number, const std::string& isis_cycle, const std::string& journal_dir, const std::string& computer_name)
+
+
+void sendSlackMessage(std::string inst_name, std::string mess)
+{
+	boost::to_lower(inst_name);
+	std::string slack_channel = "#journal_" + inst_name;
+//	std::string slack_channel = "#test";
+	std::string config_file = exeCWD() + "\\JournalParser.conf";
+	std::ifstream fs;
+	fs.open(config_file.c_str(), std::ios::in);
+	if (fs.good())
+	{
+		std::string api_token;
+		std::getline(fs, api_token);
+		fs.close();
+		try
+		{
+	        auto& slack = slack::create(api_token);
+            slack.chat.channel = slack_channel;
+	        slack.chat.as_user = true;
+            slack.chat.postMessage(mess);
+		}
+		catch(const std::exception& ex)
+		{
+			std::cerr << "JournalParser: slack error: " << ex.what() << std::endl;
+		}
+	}
+	else
+	{
+		std::cerr << "JournalParser: cannot open \"" << config_file << "\"" << std::endl;
+	}
+}
+
+int createJournalFile(const std::string& file_prefix, const std::string& run_number, const std::string& isis_cycle, const std::string& journal_dir, const std::string& computer_name, const std::string inst_name)
 {
 	size_t pos = isis_cycle.find("_");
 	if (pos == std::string::npos)
@@ -71,7 +118,7 @@ int parseJournal(const std::string& file_prefix, const std::string& run_number, 
 		return -1;		
 	}
 	std::string journal_file = journal_dir + "\\journal_" + isis_cycle.substr(pos+1) + ".xml";
-	std::string inst_name = computer_name.substr(3); // after NDX
+	
     struct stat st;
 	if (stat(journal_file.c_str(), &st) != 0)
 	{
@@ -116,32 +163,73 @@ int parseJournal(const std::string& file_prefix, const std::string& run_number, 
 	// << getJV(entry, "monitor_sum") << "* monitor spectrum " << getJV(entry, "monitor_spectrum") << " sum, *" 
 	mess << tbuffer << " Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "number_spectra") << "* spectra, *" << getJV(entry, "number_periods") << "* periods, " << collect_mode << ", *" << getJV(entry, "total_mevents") << "* total DAE MEvents) ```" << getJV(entry, "title") << "```";
 	std::cerr << mess.str() << std::endl;
-	boost::to_lower(inst_name);
-	std::string slack_channel = "#journal_" + inst_name;
-//	std::string slack_channel = "#test";
-	std::string config_file = exeCWD() + "\\JournalParser.conf";
-	std::ifstream fs;
-	fs.open(config_file.c_str(), std::ios::in);
-	if (fs.good())
+	
+	// sendSlackMessage(inst_name, mess.str());
+	
+	return 0;
+}
+
+int writeToDatabase()
+{
+	
+	// const char* mysqlHost = macEnvExpand("$(MYSQLHOST=localhost)");
+	std::string mysqlHost = "localhost";
+	sql::Driver * mysql_driver;
+	// std::string password = "something";
+	
+	try 
 	{
-		std::string api_token;
-		std::getline(fs, api_token);
-		fs.close();
-		try
-		{
-	        auto& slack = slack::create(api_token);
-            slack.chat.channel = slack_channel;
-	        slack.chat.as_user = true;
-            slack.chat.postMessage(mess.str());
-		}
-		catch(const std::exception& ex)
-		{
-			std::cerr << "JournalParser: slack error: " << ex.what() << std::endl;
-		}
+		mysql_driver = sql::mysql::get_driver_instance();
+		
+		std::auto_ptr< sql::Connection > con(mysql_driver->connect(mysqlHost, "iocdb", "$iocdb"));
+		
+		std::auto_ptr<sql::Statement> stmt(con->createStatement());
+		
+		con->setAutoCommit(0);
+		con->setSchema("iocdb");
+		
+		stmt->execute(std::string("INSERT INTO iocdb.iocs VALUES ('test','test',9999,9999,'test','test','test','test')"));
+		con->commit();
+		puts("Did mysql successfully");
 	}
-	else
+	catch (sql::SQLException &e) 
 	{
-		std::cerr << "JournalParser: cannot open \"" << config_file << "\"" << std::endl;
+        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
+        return -1;
+	} 
+	catch (std::runtime_error &e)
+	{
+        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s\n", e.what());
+        return -1;
 	}
+    catch(...)
+    {
+        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
+        return -1;
+    }
+	return 0;
+}
+
+/// file_prefix = argv[1]; // could be inst name or inst short name
+/// run_number = argv[2];  // 5 or 8 digit with leading zeros
+/// isis_cycle = argv[3];  // e.g. cycle_14_2
+///	const char* journal_dir = argv[4];  // e.g. c:\data\export only
+/// computer_name = argv[5];  // e.g. NDXGEM
+int parseJournal(const std::string& file_prefix, const std::string& run_number, const std::string& isis_cycle, const std::string& journal_dir, const std::string& computer_name)
+{
+	std::string inst_name = computer_name.substr(3); // after NDX
+	int success;
+	success = createJournalFile(file_prefix, run_number, isis_cycle, journal_dir, computer_name, inst_name);
+	if (success != 0)
+	{
+		return success;
+	}	
+	
+	success = writeToDatabase();
+	if (success != 0)
+	{
+		return success;
+	}
+	
 	return 0;
 }
