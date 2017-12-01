@@ -56,11 +56,16 @@
 
 #include "JournalParserSup.h"
 
-static std::string getJV(pugi::xml_node& node, const std::string& name)
+static std::string trimXmlNode(pugi::xml_node& node, const std::string& name)
 { 
-	// check title for characters to escape
     std::string value = node.child_value(name.c_str());
     boost::trim(value);
+    return value;
+}
+
+static std::string getJV(pugi::xml_node& node, const std::string& name)
+{ 
+	std::string value = trimXmlNode(node, name);
 	// always needed for slack messages 
     boost::replace_all(value, "&", "&amp;");
     boost::replace_all(value, "<", "&lt;");
@@ -68,13 +73,6 @@ static std::string getJV(pugi::xml_node& node, const std::string& name)
     return value;
 }
 
-static std::string trimXmlNode(pugi::xml_node& node, const std::string& name)
-{ 
-    std::string value = node.child_value(name.c_str());
-    boost::trim(value);
-    return value;
-}
-	
 static std::string exeCWD()
 {
     char buffer[MAX_PATH];
@@ -82,8 +80,6 @@ static std::string exeCWD()
     size_t pos = std::string(buffer).find_last_of( "\\/" );
     return std::string(buffer).substr(0, pos);
 }
-
-
 
 void sendSlackMessage(std::string inst_name, std::string mess)
 {
