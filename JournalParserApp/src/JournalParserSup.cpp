@@ -60,6 +60,7 @@ static std::string getJV(pugi::xml_node& node, const std::string& name)
 { 
 	// check title for characters to escape
     std::string value = node.child_value(name.c_str());
+	puts(value.c_str());
     boost::trim(value);
 	// always needed for slack messages 
     boost::replace_all(value, "&", "&amp;");
@@ -107,6 +108,41 @@ void sendSlackMessage(std::string inst_name, std::string mess)
 	{
 		std::cerr << "JournalParser: cannot open \"" << config_file << "\"" << std::endl;
 	}
+}
+
+int writeToDatabase(const std::string run_number/*, const std::string title, const std::string start_time, const std::string duration, const std::string uamps, const std::string rb_num, const std::string users*/)
+{	
+	try 
+	{
+		sql::Driver * mysql_driver = sql::mysql::get_driver_instance();
+		
+		std::auto_ptr< sql::Connection > con(mysql_driver->connect("localhost", "journal", "$journal"));
+		
+		std::auto_ptr<sql::Statement> stmt(con->createStatement());
+		
+		con->setAutoCommit(0);
+		con->setSchema("journal");
+		
+		stmt->execute(std::string("INSERT INTO journal_entries VALUES ('" + run_number + "','title is hello','2020-10-10 10:10:10','01:00:00','123456789','12345678','Alice, Bob, Charlie, Dave')"));
+		con->commit();
+		puts("Did mysql successfully");
+	}
+	catch (sql::SQLException &e) 
+	{
+        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
+        return -1;
+	} 
+	catch (std::runtime_error &e)
+	{
+        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s\n", e.what());
+        return -1;
+	}
+    catch(...)
+    {
+        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
+        return -1;
+    }
+	return 0;
 }
 
 int createJournalFile(const std::string& file_prefix, const std::string& run_number, const std::string& isis_cycle, const std::string& journal_dir, const std::string& computer_name, const std::string inst_name)
@@ -166,48 +202,10 @@ int createJournalFile(const std::string& file_prefix, const std::string& run_num
 	
 	// sendSlackMessage(inst_name, mess.str());
 	
-	return 0;
-}
-
-int writeToDatabase()
-{
-	
-	// const char* mysqlHost = macEnvExpand("$(MYSQLHOST=localhost)");
-	std::string mysqlHost = "localhost";
-	sql::Driver * mysql_driver;
-	// std::string password = "something";
-	
-	try 
-	{
-		mysql_driver = sql::mysql::get_driver_instance();
+	 
+	std::string run_id = entry.child_value("run_number");
 		
-		std::auto_ptr< sql::Connection > con(mysql_driver->connect(mysqlHost, "iocdb", "$iocdb"));
-		
-		std::auto_ptr<sql::Statement> stmt(con->createStatement());
-		
-		con->setAutoCommit(0);
-		con->setSchema("iocdb");
-		
-		stmt->execute(std::string("INSERT INTO iocdb.iocs VALUES ('test','test',9999,9999,'test','test','test','test')"));
-		con->commit();
-		puts("Did mysql successfully");
-	}
-	catch (sql::SQLException &e) 
-	{
-        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
-        return -1;
-	} 
-	catch (std::runtime_error &e)
-	{
-        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s\n", e.what());
-        return -1;
-	}
-    catch(...)
-    {
-        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
-        return -1;
-    }
-	return 0;
+	return writeToDatabase(run_id);
 }
 
 /// file_prefix = argv[1]; // could be inst name or inst short name
@@ -224,12 +222,6 @@ int parseJournal(const std::string& file_prefix, const std::string& run_number, 
 	{
 		return success;
 	}	
-	
-	success = writeToDatabase();
-	if (success != 0)
-	{
-		return success;
-	}
 	
 	return 0;
 }
