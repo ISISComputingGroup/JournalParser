@@ -60,12 +60,18 @@ static std::string getJV(pugi::xml_node& node, const std::string& name)
 { 
 	// check title for characters to escape
     std::string value = node.child_value(name.c_str());
-	puts(value.c_str());
     boost::trim(value);
 	// always needed for slack messages 
     boost::replace_all(value, "&", "&amp;");
     boost::replace_all(value, "<", "&lt;");
     boost::replace_all(value, ">", "&gt;");
+    return value;
+}
+
+static std::string trimXmlNode(pugi::xml_node& node, const std::string& name)
+{ 
+    std::string value = node.child_value(name.c_str());
+    boost::trim(value);
     return value;
 }
 	
@@ -110,7 +116,7 @@ void sendSlackMessage(std::string inst_name, std::string mess)
 	}
 }
 
-int writeToDatabase(const std::string run_number/*, const std::string title, const std::string start_time, const std::string duration, const std::string uamps, const std::string rb_num, const std::string users*/)
+int writeToDatabase(const std::string run_number, const std::string title, const std::string start_time, const std::string duration, const std::string uamps, const std::string rb_num, const std::string users)
 {	
 	try 
 	{
@@ -123,7 +129,7 @@ int writeToDatabase(const std::string run_number/*, const std::string title, con
 		con->setAutoCommit(0);
 		con->setSchema("journal");
 		
-		stmt->execute(std::string("INSERT INTO journal_entries VALUES ('" + run_number + "','title is hello','2020-10-10 10:10:10','01:00:00','123456789','12345678','Alice, Bob, Charlie, Dave')"));
+		stmt->execute(std::string("INSERT INTO journal_entries VALUES ('" + run_number + "','" + title + "','" + start_time + "','" + duration + "','" + uamps + "','" + rb_num + "','" + users + "')"));
 		con->commit();
 		puts("Did mysql successfully");
 	}
@@ -203,9 +209,14 @@ int createJournalFile(const std::string& file_prefix, const std::string& run_num
 	// sendSlackMessage(inst_name, mess.str());
 	
 	 
-	std::string run_id = entry.child_value("run_number");
-		
-	return writeToDatabase(run_id);
+	std::string run_id = trimXmlNode(entry, "run_number");
+	std::string title = trimXmlNode(entry, "title");
+	std::string start_time = trimXmlNode(entry, "start_time");
+	std::string duration = trimXmlNode(entry, "duration");
+	std::string uamps = trimXmlNode(entry, "proton_charge");
+	std::string rb_number = trimXmlNode(entry, "experiment_identifier");
+	std::string users = trimXmlNode(entry, "user_name");
+	return writeToDatabase(run_id, title, start_time, duration, uamps, rb_number, users);
 }
 
 /// file_prefix = argv[1]; // could be inst name or inst short name
