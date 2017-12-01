@@ -129,7 +129,19 @@ int writeToDatabase(const std::string run_number, const std::string title, const
 		con->setAutoCommit(0);
 		con->setSchema("journal");
 		
-		stmt->execute(std::string("INSERT INTO journal_entries VALUES ('" + run_number + "','" + title + "','" + start_time + "','" + duration + "','" + uamps + "','" + rb_num + "','" + users + "')"));
+		sql::PreparedStatement *prep_stmt;
+		
+		prep_stmt = con->prepareStatement("INSERT INTO journal_entries VALUES (?, ?, ?, ?, ?, ?, ?)");		
+		
+		prep_stmt->setString(1, run_number);
+		prep_stmt->setString(2, title);
+		prep_stmt->setString(3, start_time);
+		prep_stmt->setString(4, duration);
+		prep_stmt->setString(5, uamps);
+		prep_stmt->setString(6, rb_num);
+		prep_stmt->setString(7, users);
+		prep_stmt->execute();
+		
 		con->commit();
 		puts("Did mysql successfully");
 	}
