@@ -56,6 +56,16 @@
 
 #include "JournalParserSup.h"
 
+/**
+ * Gets the value of an XML node without any whitespace around it.
+ *
+ * Args: 
+ *    node: The node to get the value from.
+ *    name: The name of the value to get.
+ *
+ * Returns:
+ *    The value with no leading or trailing whitespace.
+ */
 static std::string trimXmlNode(pugi::xml_node& node, const std::string& name)
 {
     std::string value = node.child_value(name.c_str());
@@ -112,52 +122,85 @@ void sendSlackMessage(std::string inst_name, std::string mess)
 	}
 }
 
-int writeToDatabase(const std::string run_number, const std::string title, const std::string start_time, const std::string duration, const std::string uamps, const std::string rb_num, const std::string users, const std::string simulation_mode, const std::string local_contact, const std::string user_institute, const std::string instrument_name, const std::string sample_id, const std::string measurement_first_run, const std::string measurement_id, const std::string measurement_label, const std::string measurement_type, const std::string measurement_subid, const std::string end_time, const std::string raw_frames, const std::string good_frames, const std::string number_periods, const std::string number_spectra, const std::string number_detectors, const std::string number_time_regimes, const std::string frame_sync)
+/**
+ * Writes to the database based on the contents of an XML node.
+ *
+ * Args: 
+ *     entry: The XML node representing the entry to be written to the database.
+ *
+ * Returns: 
+ *     0 if successful, non-zero if unsuccessful.
+ */
+int writeToDatabase(pugi::xml_node& entry)
 {
+	// Must match with the number of columns in SQL database and also with list of XML attributes below.
+	const int number_of_elements = 25; 
+	
+	// List of items to extract from XML.
+	// Should be in the same order as the columns in the database.
+	const char* xml_names[number_of_elements] = {
+		"run_number",
+		"title",
+		"start_time",
+		"duration",
+		"proton_charge",
+		"experiment_identifier",
+		"user_name",
+		"simulation_mode",
+		"local_contact",
+		"user_institute",
+		"instrument_name",
+		"sample_id",
+		"measurement_first_run",
+		"measurement_id",
+		"measurement_label",
+		"measurement_type",
+		"measurement_subid",
+		"end_time",
+		"raw_frames",
+		"good_frames",
+		"number_periods",
+		"number_spectra",
+		"number_detectors",
+		"number_time_regimes",
+		"frame_sync"
+	};
+
+	std::string data[number_of_elements];
+	
+	// Get value of XML node and trim whitespace.
+	int i;
+	for (i=0; i<number_of_elements; i++)
+	{
+		data[i] = trimXmlNode(entry, xml_names[i]);
+	}
+	
 	try
 	{
 		sql::Driver * mysql_driver = sql::mysql::get_driver_instance();
-
 		std::auto_ptr< sql::Connection > con(mysql_driver->connect("localhost", "journal", "$journal"));
-
 		std::auto_ptr<sql::Statement> stmt(con->createStatement());
-
 		con->setAutoCommit(0);
 		con->setSchema("journal");
-
 		sql::PreparedStatement *prep_stmt;
+		
+		std::string query ("INSERT INTO journal_entries VALUES (");
+		// Loop to number_of_elements-1 because last "?" should not have a trailing comma.
+		for(i=0; i<number_of_elements-1; i++)
+		{
+			query.append("?, ");
+		}
+		query.append("?)");
+		
+		prep_stmt = con->prepareStatement(query);
 
-		prep_stmt = con->prepareStatement("INSERT INTO journal_entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-		prep_stmt->setString(1, run_number);
-		prep_stmt->setString(2, title);
-		prep_stmt->setString(3, start_time);
-		prep_stmt->setString(4, duration);
-		prep_stmt->setString(5, uamps);
-		prep_stmt->setString(6, rb_num);
-		prep_stmt->setString(7, users);
-    prep_stmt->setString(8, simulation_mode);
-    prep_stmt->setString(9, local_contact);
-    prep_stmt->setString(10, user_institute);
-    prep_stmt->setString(11, instrument_name);
-    prep_stmt->setString(12, sample_id);
-    prep_stmt->setString(13, measurement_first_run);
-    prep_stmt->setString(14, measurement_id);
-    prep_stmt->setString(15, measurement_label);
-    prep_stmt->setString(16, measurement_type);
-    prep_stmt->setString(17, measurement_subid);
-    prep_stmt->setString(18, end_time);
-    prep_stmt->setString(19, raw_frames);
-    prep_stmt->setString(20, good_frames);
-    prep_stmt->setString(21, number_periods);
-    prep_stmt->setString(22, number_spectra);
-    prep_stmt->setString(23, number_detectors);
-    prep_stmt->setString(24, number_time_regimes);
-    prep_stmt->setString(25, frame_sync);
+		for (i=0; i<number_of_elements; i++) 
+		{
+			prep_stmt->setString(i+1, data[i]);
+		}
+		
 		prep_stmt->execute();
-
 		con->commit();
-		puts("Did mysql successfully");
 	}
 	catch (sql::SQLException &e)
 	{
@@ -233,51 +276,25 @@ int createJournalFile(const std::string& file_prefix, const std::string& run_num
 	std::cerr << mess.str() << std::endl;
 
 	// sendSlackMessage(inst_name, mess.str());
-
-
-	std::string run_id = trimXmlNode(entry, "run_number");
-	std::string title = trimXmlNode(entry, "title");
-	std::string start_time = trimXmlNode(entry, "start_time");
-	std::string duration = trimXmlNode(entry, "duration");
-	std::string uamps = trimXmlNode(entry, "proton_charge");
-	std::string rb_number = trimXmlNode(entry, "experiment_identifier");
-	std::string users = trimXmlNode(entry, "user_name");
-  std::string simulation_mode = trimXmlNode(entry, "simulation_mode");
-  std::string local_contact = trimXmlNode(entry, "local_contact");
-  std::string user_institute = trimXmlNode(entry, "user_institute");
-  std::string instrument_name = trimXmlNode(entry, "instrument_name");
-  std::string sample_id = trimXmlNode(entry, "sample_id");
-  std::string measurement_first_run = trimXmlNode(entry, "measurement_first_run");
-  std::string measurement_id = trimXmlNode(entry, "measurement_id");
-  std::string measurement_label = trimXmlNode(entry, "measurement_label");
-  std::string measurement_type = trimXmlNode(entry, "measurement_type");
-  std::string measurement_subid = trimXmlNode(entry, "measurement_subid");
-  std::string end_time = trimXmlNode(entry, "end_time");
-  std::string raw_frames = trimXmlNode(entry, "raw_frames");
-  std::string good_frames = trimXmlNode(entry, "good_frames");
-  std::string number_periods = trimXmlNode(entry, "number_periods");
-  std::string number_spectra = trimXmlNode(entry, "number_spectra");
-  std::string number_detectors = trimXmlNode(entry, "number_detectors");
-  std::string number_time_regimes = trimXmlNode(entry, "number_time_regimes");
-  std::string frame_sync = trimXmlNode(entry, "frame_sync");
-
-	return writeToDatabase(run_id, title, start_time, duration, uamps, rb_number, users, simulation_mode, local_contact, user_institute, instrument_name, sample_id, measurement_first_run, measurement_id, measurement_label, measurement_type, measurement_subid, end_time, raw_frames, good_frames, number_periods, number_spectra, number_detectors, number_time_regimes, frame_sync);
+	
+	return writeToDatabase(entry);
 }
 
-/// file_prefix = argv[1]; // could be inst name or inst short name
-/// run_number = argv[2];  // 5 or 8 digit with leading zeros
-/// isis_cycle = argv[3];  // e.g. cycle_14_2
-///	const char* journal_dir = argv[4];  // e.g. c:\data\export only
-/// computer_name = argv[5];  // e.g. NDXGEM
+/*
+ * Parses a journal file.
+ *
+ * Args:
+ *    file_prefix: Could be either the instrument name or the instrument short name.
+ *    run_number: 5 or 8 digit run number, with leading zeros.
+ *    isis_cycle: ISIS cycle number (e.g. cycle_14_2)
+ *    journal_dir: Directory where the journal file is found (e.g. c:\data\export only)
+ *    computer_name: E.g. NDXGEM (note, if using a development machine prefix your machine name again, i.e. input NDWNDW1111 rather than NDW1111)
+ *
+ * Returns:
+ *    0 on success, non-zero on failure.
+ */
 int parseJournal(const std::string& file_prefix, const std::string& run_number, const std::string& isis_cycle, const std::string& journal_dir, const std::string& computer_name)
 {
 	std::string inst_name = computer_name.substr(3); // after NDX
-	int success;
-	success = createJournalFile(file_prefix, run_number, isis_cycle, journal_dir, computer_name, inst_name);
-	if (success != 0)
-	{
-		return success;
-	}
-
-	return 0;
+	return createJournalFile(file_prefix, run_number, isis_cycle, journal_dir, computer_name, inst_name);
 }
