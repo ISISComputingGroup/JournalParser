@@ -134,7 +134,7 @@ void sendSlackMessage(std::string inst_name, std::string mess)
 int writeToDatabase(pugi::xml_node& entry)
 {
 	// Must match with the number of columns in SQL database and also with list of XML attributes below.
-	const int number_of_elements = 25; 
+	const int number_of_elements = 43; 
 	
 	// List of items to extract from XML.
 	// Should be in the same order as the columns in the database.
@@ -163,7 +163,25 @@ int writeToDatabase(pugi::xml_node& entry)
 		"number_spectra",
 		"number_detectors",
 		"number_time_regimes",
-		"frame_sync"
+		"frame_sync",
+		"icp_version",
+        "detector_table_file",
+        "spectra_table_file",
+        "wiring_table_file",
+        "monitor_spectrum",
+        "monitor_sum",
+        "total_mevents",
+        "comment",
+        "field_label",
+        "instrument_geometry",
+        "script_name",
+        "sample_name",
+        "sample_orientation",
+        "temperature_label",
+        "npratio_average",
+        "isis_cycle",
+        "seci_config",
+        "event_mode"
 	};
 
 	std::string data[number_of_elements];
