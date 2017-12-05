@@ -133,12 +133,10 @@ void sendSlackMessage(std::string inst_name, std::string mess)
  */
 int writeToDatabase(pugi::xml_node& entry)
 {
-	// Must match with the number of columns in SQL database and also with list of XML attributes below.
-	const int number_of_elements = 43; 
 	
 	// List of items to extract from XML.
-	// Should be in the same order as the columns in the database.
-	const char* xml_names[number_of_elements] = {
+	// Should be in the same order and same amount of things as the columns in the database.
+	const char* xml_names[] = {
 		"run_number",
 		"title",
 		"start_time",
@@ -183,6 +181,8 @@ int writeToDatabase(pugi::xml_node& entry)
         "seci_config",
         "event_mode"
 	};
+	
+	const int number_of_elements = sizeof(xml_names) / sizeof(const char*); 
 
 	std::string data[number_of_elements];
 	
@@ -222,17 +222,17 @@ int writeToDatabase(pugi::xml_node& entry)
 	}
 	catch (sql::SQLException &e)
 	{
-        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
+        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
         return -1;
 	}
 	catch (std::runtime_error &e)
 	{
-        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s\n", e.what());
+        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: %s\n", e.what());
         return -1;
 	}
     catch(...)
     {
-        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
+        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
         return -1;
     }
 	return 0;
