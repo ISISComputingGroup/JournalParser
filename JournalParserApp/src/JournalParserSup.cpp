@@ -293,7 +293,7 @@ int createJournalFile(const std::string& file_prefix, const std::string& run_num
 	mess << tbuffer << " Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "number_spectra") << "* spectra, *" << getJV(entry, "number_periods") << "* periods, " << collect_mode << ", *" << getJV(entry, "total_mevents") << "* total DAE MEvents) ```" << getJV(entry, "title") << "```";
 	std::cerr << mess.str() << std::endl;
 
-	// sendSlackMessage(inst_name, mess.str());
+	sendSlackMessage(inst_name, mess.str());
 	
 	return writeToDatabase(entry);
 }
