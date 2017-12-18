@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <NXroot NeXus_version="4.3.0" XML_version="mxml"
+file_name="c:\data\journal_00_0.xml"
+xmlns="http://definition.nexusformat.org/schema/3.0"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://definition.nexusformat.org/schema/3.0"
+file_time="2017-11-24T12:25:27+00:00">
+    <NXentry name="SYSTEMTEST00001234">
+      <title NAPItype="NX_CHAR[10]">long title</title>
+      <simulation_mode NAPItype="NX_CHAR[3]">YES</simulation_mode>
+      <user_name NAPItype="NX_CHAR[11]">UNSPECIFIED</user_name>
+      <local_contact NAPItype="NX_CHAR[11]">UNSPECIFIED</local_contact>
+      <user_institute NAPItype="NX_CHAR[11]">UNSPECIFIED</user_institute>
+      <experiment_identifier NAPItype="NX_CHAR[1]">0</experiment_identifier>
+      <instrument_name NAPItype="NX_CHAR[7]">SYSTEMTEST</instrument_name>
+      <run_number NAPItype="NX_INT32">        1234
+      </run_number>
+      <sample_id NAPItype="NX_CHAR[11]">UNSPECIFIED</sample_id>
+      <measurement_first_run NAPItype="NX_INT32">           0
+      </measurement_first_run>
+      <measurement_id NAPItype="NX_CHAR[11]">UNSPECIFIED</measurement_id>
+      <measurement_label NAPItype="NX_CHAR[11]">UNSPECIFIED</measurement_label>
+      <measurement_type NAPItype="NX_CHAR[11]">UNSPECIFIED</measurement_type>
+      <measurement_subid NAPItype="NX_CHAR[11]">UNSPECIFIED</measurement_subid>
+      <start_time NAPItype="NX_CHAR[19]">2017-11-24T09:59:39</start_time>
+      <end_time NAPItype="NX_CHAR[19]">2017-11-24T12:25:26</end_time>
+      <duration NAPItype="NX_INT64">                    8747
+      </duration>
+      <proton_charge NAPItype="NX_FLOAT32">    424.1252
+      </proton_charge>
+      <raw_frames NAPItype="NX_UINT32">      424401
+      </raw_frames>
+      <good_frames NAPItype="NX_UINT32">      424401
+      </good_frames>
+      <number_periods NAPItype="NX_INT32">           1
+      </number_periods>
+      <number_spectra NAPItype="NX_INT32">         128
+      </number_spectra>
+      <number_detectors NAPItype="NX_INT32">         128
+      </number_detectors>
+      <number_time_regimes NAPItype="NX_INT32">           1
+      </number_time_regimes>
+      <frame_sync NAPItype="NX_CHAR[3]">SMP</frame_sync>
+      <IXtime_regime name="time_regime_1">
+        <number_time_channels NAPItype="NX_INT32">          40
+        </number_time_channels>
+        <time_channel_min NAPItype="NX_FLOAT32">      5.0000
+        </time_channel_min>
+        <time_channel_max NAPItype="NX_FLOAT32">     15.0000
+        </time_channel_max>
+      </IXtime_regime>
+      <icp_version NAPItype="NX_CHAR[74]">SVN R1843 (2017/08/16 12:12:56, Mixed revision WC 1832:1843, Not modified)</icp_version>
+      <detector_table_file NAPItype="NX_CHAR[81]">C:/Instrument/Settings/config/NDWSYSTEMTEST/configurations/tables/RCPTT_detector128.dat</detector_table_file>
+      <spectra_table_file NAPItype="NX_CHAR[80]">C:/Instrument/Settings/config/NDWSYSTEMTEST/configurations/tables/RCPTT_spectra128.dat</spectra_table_file>
+      <wiring_table_file NAPItype="NX_CHAR[79]">C:/Instrument/Settings/config/NDWSYSTEMTEST/configurations/tables/RCPTT_wiring128.dat</wiring_table_file>
+      <monitor_spectrum NAPItype="NX_INT32">           0
+      </monitor_spectrum>
+      <monitor_sum NAPItype="NX_UINT32">           0
+      </monitor_sum>
+      <total_mevents NAPItype="NX_FLOAT32">      0.0413
+      </total_mevents>
+      <comment NAPItype="NX_CHAR[11]">UNSPECIFIED</comment>
+      <field_label NAPItype="NX_CHAR[11]">UNSPECIFIED</field_label>
+      <instrument_geometry NAPItype="NX_CHAR[11]">UNSPECIFIED</instrument_geometry>
+      <script_name NAPItype="NX_CHAR[11]">UNSPECIFIED</script_name>
+      <sample_name NAPItype="NX_CHAR[11]">UNSPECIFIED</sample_name>
+      <sample_orientation NAPItype="NX_CHAR[11]">UNSPECIFIED</sample_orientation>
+      <temperature_label NAPItype="NX_CHAR[11]">UNSPECIFIED</temperature_label>
+      <npratio_average NAPItype="NX_FLOAT32">      0.0000
+      </npratio_average>
+      <isis_cycle NAPItype="NX_CHAR[4]">00_0</isis_cycle>
+      <seci_config NAPItype="NX_CHAR[11]">UNSPECIFIED</seci_config>
+      <event_mode NAPItype="NX_FLOAT64">         0.00000
+      </event_mode>
+      <IXselog name="selog" />
+    </NXentry>
+  </NXroot>
