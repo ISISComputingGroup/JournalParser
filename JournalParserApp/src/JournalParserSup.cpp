@@ -13,6 +13,9 @@
 #include <stdio.h>
 #include <errno.h>
 #include <math.h>
+#ifndef _WIN32
+#include <sys/stat.h>
+#endif
 #include <exception>
 #include <iostream>
 #include <fstream>
@@ -85,8 +88,22 @@ static std::string getJV(pugi::xml_node& node, const std::string& name)
 
 static std::string exeCWD()
 {
+#ifdef _WIN32
     char buffer[MAX_PATH];
-    GetModuleFileName(NULL, buffer, MAX_PATH);
+    buffer[0] = '\0';
+    GetModuleFileName(NULL, buffer, sizeof(buffer));
+#else
+    char buffer[256];
+    int n = readlink("/proc/self/exe", buffer, sizeof(buffer)-1);
+    if (n >= 0)
+    {
+       buffer[n] = '\0';
+    }
+    else
+    {
+        strcpy(buffer,"<unknown>");
+    }
+#endif
     size_t pos = std::string(buffer).find_last_of( "\\/" );
     return std::string(buffer).substr(0, pos);
 }
@@ -254,7 +271,11 @@ int createJournalFile(const std::string& file_prefix, const std::string& run_num
 		std::cerr << "JournalParser: file \"" << journal_file << "\" does not exist" << std::endl;
 		return -1;
 	}
+#ifdef _WIN32
     FILE* f = _fsopen(journal_file.c_str(), "rt", _SH_DENYNO);
+#else
+    FILE* f = fopen(journal_file.c_str(), "rt");
+#endif
 	if (f == NULL)
 	{
 		std::cerr << "JournalParser: Error opening \"" << journal_file << "\"" << std::endl;
@@ -281,7 +302,7 @@ int createJournalFile(const std::string& file_prefix, const std::string& run_num
 	sprintf(main_entry_xpath, "/NXroot/NXentry[@name='%s%08d']", inst_name.c_str(), atoi(run_number.c_str()));
     pugi::xpath_node main_entry = doc.select_single_node(main_entry_xpath);
 	std::ostringstream mess;
-	pugi::xml_node& entry = main_entry.node();
+	pugi::xml_node entry = main_entry.node();
 	// we need to have title in a ``` so if it contains markdown like
 	// characters they are not interpreted
 	const char* collect_mode = (atof(getJV(entry, "event_mode").c_str()) > 0.0 ? "*event* mode" : "*histogram* mode");
