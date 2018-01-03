@@ -4,7 +4,9 @@ import subprocess
 import mysql.connector
 
 EPICS = os.path.join("C:\\", "instrument", "apps", "epics")
-JOURNAL_PARSER = os.path.join(EPICS, "isis", "journalparser", "master", "bin", "windows-x64", "JournalParser.exe")
+JOURNAL_REPO = os.path.join(EPICS, "isis", "journalparser", "master")
+JOURNAL_PARSER = os.path.join(JOURNAL_REPO, "bin", "windows-x64", "JournalParser.exe")
+JOURNAL_TEST_DIR = os.path.join(JOURNAL_REPO, "test")
 
 INSTRUMENT_NAME = "SYSTEMTEST"
 COMPUTER_NAME = "NDW" + INSTRUMENT_NAME
@@ -46,14 +48,14 @@ class JournalParserTests(unittest.TestCase):
 
         self.assert_number_of_database_entries(0, VALID_RUN_NUMBER)
         run_journal_parser(COMPUTER_NAME, "{:08d}".format(VALID_RUN_NUMBER), "cycle_00_0",
-                           '"{}"'.format(os.path.abspath(os.getcwd())), COMPUTER_NAME)
+                           '"{}"'.format(os.path.abspath(JOURNAL_TEST_DIR)), COMPUTER_NAME)
         self.assert_number_of_database_entries(1, VALID_RUN_NUMBER)
 
     def test_GIVEN_data_not_containing_run_WHEN_journal_parser_is_called_THEN_error(self):
         self.assert_number_of_database_entries(0, INVALID_RUN_NUMBER)
         with self.assertRaises(subprocess.CalledProcessError):
             run_journal_parser(COMPUTER_NAME, "{:08d}".format(INVALID_RUN_NUMBER), "cycle_00_0",
-                               '"{}"'.format(os.path.abspath(os.getcwd())), COMPUTER_NAME)
+                               '"{}"'.format(os.path.abspath(JOURNAL_TEST_DIR)), COMPUTER_NAME)
         self.assert_number_of_database_entries(0, INVALID_RUN_NUMBER)
 
     def test_GIVEN_invalid_arguments_WHEN_journal_parser_called_THEN_error(self):
