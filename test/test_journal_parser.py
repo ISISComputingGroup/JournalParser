@@ -1,7 +1,9 @@
 import os
+import sys
 import unittest
 import subprocess
 import mysql.connector
+from xmlrunner import XMLTestRunner
 
 EPICS = os.path.join("C:\\", "instrument", "apps", "epics")
 JOURNAL_REPO = os.path.join(EPICS, "isis", "journalparser", "master")
@@ -64,4 +66,7 @@ class JournalParserTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    suite = unittest.TestSuite()
+    loader = unittest.TestLoader()
+    suite.addTests(loader.loadTestsFromTestCase(JournalParserTests))
+    sys.exit(XMLTestRunner().run(suite).wasSuccessful())
