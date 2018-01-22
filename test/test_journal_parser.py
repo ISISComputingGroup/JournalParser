@@ -7,7 +7,6 @@ from xmlrunner import XMLTestRunner
 
 JOURNAL_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 JOURNAL_PARSER = os.path.abspath(os.path.join(JOURNAL_TEST_DIR, "..", "bin", "windows-x64", "JournalParser.exe"))
-assert os.path.exists(JOURNAL_PARSER), "Journal parser executable did not exist in '{}'".format(JOURNAL_PARSER)
 
 INSTRUMENT_NAME = "SYSTEMTEST"
 COMPUTER_NAME = "NDW" + INSTRUMENT_NAME
@@ -24,6 +23,9 @@ def run_journal_parser(*args):
 class JournalParserTests(unittest.TestCase):
 
     def setUp(self):
+
+        if not os.path.exists(JOURNAL_PARSER):
+            self.skipTest("Journal parser didn't exist")
 
         self.assertIn("EPICS_BASE", os.environ, "Must run these tests in an epics terminal.")
 
