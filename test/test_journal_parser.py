@@ -5,10 +5,9 @@ import subprocess
 import mysql.connector
 from xmlrunner import XMLTestRunner
 
-EPICS = os.path.join("C:\\", "instrument", "apps", "epics")
-JOURNAL_REPO = os.path.join(EPICS, "isis", "journalparser", "master")
-JOURNAL_PARSER = os.path.join(JOURNAL_REPO, "bin", "windows-x64", "JournalParser.exe")
-JOURNAL_TEST_DIR = os.path.join(JOURNAL_REPO, "test")
+JOURNAL_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+JOURNAL_PARSER = os.path.abspath(os.path.join(JOURNAL_TEST_DIR, "..", "bin", "windows-x64", "JournalParser.exe"))
+assert os.path.exists(JOURNAL_PARSER), "Journal parser executable did not exist in '{}'".format(JOURNAL_PARSER)
 
 INSTRUMENT_NAME = "SYSTEMTEST"
 COMPUTER_NAME = "NDW" + INSTRUMENT_NAME
@@ -18,7 +17,7 @@ INVALID_RUN_NUMBER = 4321  # Does not appear in journal.xml
 
 
 def run_journal_parser(*args):
-    with open(os.devnull) as devnull:
+    with open(os.devnull, "w") as devnull:
         subprocess.check_call(" ".join([JOURNAL_PARSER] + list(args)), stderr=devnull, stdout=devnull)
 
 
