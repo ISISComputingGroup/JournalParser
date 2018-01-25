@@ -1,7 +1,14 @@
-call %~dp0..\..\..\..\config_env.bat
+setlocal
+set "OLDCWD=%CWD%"
 
-set "path=C:\Instrument\Apps\EPICS\support\pugixml\master\bin\windows-x64;C:\Instrument\Apps\EPICS\support\curl\master\bin\windows-x64;C:\Instrument\Apps\EPICS\support\MySQL\master\bin\windows-x64;%path%"
+cd /d %~dp0
+call ..\..\..\..\config_env.bat
 
-%python% %~dp0test_journal_parser.py
+set "PATH=C:\Instrument\Apps\EPICS\support\pugixml\master\bin\windows-x64;C:\Instrument\Apps\EPICS\support\curl\master\bin\windows-x64;C:\Instrument\Apps\EPICS\support\MySQL\master\bin\windows-x64;%PATH%"
 
-if %errorlevel% neq 0 exit /b %errorlevel%
+%PYTHON% test_journal_parser.py
+set errlev=%errorlevel%
+
+cd/d %OLDCWD%
+
+if %errlev% neq 0 exit /b %errlev%
