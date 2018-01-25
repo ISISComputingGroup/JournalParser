@@ -70,4 +70,4 @@ if __name__ == "__main__":
     suite = unittest.TestSuite()
     loader = unittest.TestLoader()
     suite.addTests(loader.loadTestsFromTestCase(JournalParserTests))
-    sys.exit(XMLTestRunner().run(suite).wasSuccessful())
+    sys.exit(not XMLTestRunner(output=os.path.join(os.getcwd(),'test-reports')).run(suite).wasSuccessful())
