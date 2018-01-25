@@ -1,5 +1,5 @@
 setlocal
-set "OLDCWD=%CWD%"
+set "OLDCWD=%CD%"
 
 cd /d %~dp0
 call ..\..\..\..\config_env.bat
