@@ -7,6 +7,16 @@ import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 import shutil
 
+__doc__ = """
+Script to import data from journal.xml files into the MySQL database.
+
+To use:
+- Copy some journal files from <instrument>\c$\data to the same directory as this file
+- Edit the call in add_journal_entries.bat to take the arguments you need. This should be something like:
+    add_journal_entries.py --instrument ENGINX --hostname NDXENGINX
+- Wait while the data is imported!
+"""
+
 JOURNAL_PARSER_DIR = os.path.join(os.path.abspath(__file__), "..", "bin", "windows-x64", "JournalParser.exe")
 JOURNAL_PARSER_CONFIG_FILE = os.path.join(JOURNAL_PARSER_DIR, "JournalParser.conf")
 JOURNAL_PARSER = os.path.join(JOURNAL_PARSER_DIR, "JournalParser.exe")
