@@ -71,7 +71,7 @@ if __name__ == "__main__":
                     print(".", end="")
                     run_number = int(run.attrib['name'][len(instrument_name):])
 
-                    run_journal_parser(computer_name, "{:08d}".format(run_number), "cycle_{}".format(year_and_cycle),
+                    run_journal_parser(instrument_name, "{:08d}".format(run_number), "cycle_{}".format(year_and_cycle),
                                        '"{}"'.format(INGEST_DIR), computer_name)
             except Exception as e:
                 print("Couldn't load data from '{}': {} {}".format(filename, e.__class__.__name__, e))
