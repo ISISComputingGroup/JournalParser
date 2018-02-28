@@ -14,3 +14,4 @@ relPaths.sh
 *.tags
 /doc/html/
 .project
+ingest/journal*
