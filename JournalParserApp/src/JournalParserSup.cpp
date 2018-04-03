@@ -153,53 +153,53 @@ int writeToDatabase(pugi::xml_node& entry)
 	
 	// List of items to extract from XML.
 	// Should be in the same order and same amount of things as the columns in the database.
-	const char* xml_names[] = {
-		"run_number",
-		"title",
-		"start_time",
-		"duration",
-		"proton_charge",
-		"experiment_identifier",
-		"user_name",
-		"simulation_mode",
-		"local_contact",
-		"user_institute",
-		"instrument_name",
-		"sample_id",
-		"measurement_first_run",
-		"measurement_id",
-		"measurement_label",
-		"measurement_type",
-		"measurement_subid",
-		"end_time",
-		"raw_frames",
-		"good_frames",
-		"number_periods",
-		"number_spectra",
-		"number_detectors",
-		"number_time_regimes",
-		"frame_sync",
-		"icp_version",
-        "detector_table_file",
-        "spectra_table_file",
-        "wiring_table_file",
-        "monitor_spectrum",
-        "monitor_sum",
-        "total_mevents",
-        "comment",
-        "field_label",
-        "instrument_geometry",
-        "script_name",
-        "sample_name",
-        "sample_orientation",
-        "temperature_label",
-        "npratio_average",
-        "isis_cycle",
-        "seci_config",
-        "event_mode"
+	const char* xml_names[][2] = {
+		{ "run_number",             "0" },
+		{"title",                   "" },
+		{"start_time",              "" },
+		{"duration",                "0" },
+		{"proton_charge",           "0.0" },
+		{"experiment_identifier",   "" },
+		{"user_name",               "" },
+		{"simulation_mode",         "" },
+		{"local_contact",           "" },
+		{"user_institute",          "" },
+		{"instrument_name",         "" },
+		{"sample_id",               "" },
+		{"measurement_first_run",   "0" },
+		{"measurement_id",          "" },
+		{"measurement_label",       "" },
+		{"measurement_type",        "" },
+		{"measurement_subid",       "" },
+		{"end_time",                "" },
+		{"raw_frames",              "0" },
+		{"good_frames",             "0" },
+		{"number_periods",          "0" },
+		{"number_spectra",          "0" },
+		{"number_detectors",        "0" },
+		{"number_time_regimes",     "0" },
+		{"frame_sync",              "" },
+		{"icp_version",             "" },
+        {"detector_table_file",     "" },
+        {"spectra_table_file",      "" },
+        {"wiring_table_file",       "" },
+        {"monitor_spectrum",        "0" },
+        {"monitor_sum",             "0" },
+        {"total_mevents",           "0.0" },
+        {"comment",                 "" },
+        {"field_label",             "" },
+        {"instrument_geometry",     "" },
+        {"script_name",             "" },
+        {"sample_name",             "" },
+        {"sample_orientation",      "" },
+        {"temperature_label",       "" },
+        {"npratio_average",         "0.0" },
+        {"isis_cycle",              "" },
+        {"seci_config",             "" },
+		{"event_mode",              "0.0" }
 	};
 	
-	const int number_of_elements = sizeof(xml_names) / sizeof(const char*); 
+	const int number_of_elements = sizeof(xml_names) / (2 * sizeof(const char*)); 
 
 	std::string data[number_of_elements];
 	
@@ -207,7 +207,11 @@ int writeToDatabase(pugi::xml_node& entry)
 	int i;
 	for (i=0; i<number_of_elements; i++)
 	{
-		data[i] = trimXmlNode(entry, xml_names[i]);
+		data[i] = trimXmlNode(entry, xml_names[i][0]);
+		if (data[i] == "")
+		{
+			data[i] = xml_names[i][1];
+		}
 	}
 	
 	try
