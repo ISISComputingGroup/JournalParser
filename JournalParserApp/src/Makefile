@@ -32,7 +32,7 @@ JournalParserSup_LIBS += $(EPICS_BASE_IOC_LIBS) $(MYSQLLIB)
 JournalParser_LIBS += JournalParserSup $(MYSQLLIB) utilities
 JournalParser_LIBS += pugixml zlib
 JournalParser_LIBS_WIN32 += libcurl
-JournalParser_SYS_LIBS_WIN32 += wldap32
+JournalParser_SYS_LIBS_WIN32 += wldap32 crypt32 Normaliz
 JournalParser_SYS_LIBS_Linux += curl
 JournalParser_LIBS += $(EPICS_BASE_IOC_LIBS)
 
