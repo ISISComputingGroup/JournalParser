@@ -51,6 +51,12 @@
 #include "mysql_driver.h"
 #include "mysql_connection.h"
 
+// CURL
+#include <curl/curl.h>
+#include <curl/easy.h>
+
+#include <libjson.h>
+
 #include <pugixml.hpp>
 #include <boost/algorithm/string.hpp>
 #include <slacking.hpp>
@@ -86,6 +92,12 @@ static std::string getJV(pugi::xml_node& node, const std::string& name)
     return value;
 }
 
+static void escapeJSON(std::string& str)
+{
+    boost::replace_all(str, "\\", "\\\\");
+    boost::replace_all(str, "\"", "\\\"");
+}
+
 static std::string exeCWD()
 {
 #ifdef _WIN32
@@ -108,35 +120,79 @@ static std::string exeCWD()
     return std::string(buffer).substr(0, pos);
 }
 
-void sendSlackMessage(std::string inst_name, std::string mess)
+static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_mess, std::string teams_mess)
 {
 	boost::to_lower(inst_name);
 	std::string slack_channel = "#journal_" + inst_name;
 //	std::string slack_channel = "#test";
 	std::string config_file = exeCWD() + "\\JournalParser.conf";
 	std::ifstream fs;
+    std::string slack_api_token, teams_url;
 	fs.open(config_file.c_str(), std::ios::in);
 	if (fs.good())
 	{
-		std::string api_token;
-		std::getline(fs, api_token);
+		std::getline(fs, slack_api_token);
+		std::getline(fs, teams_url);
 		fs.close();
+    }
+	else
+	{
+		std::cerr << "JournalParser: cannot open \"" << config_file << "\"" << std::endl;
+	}
+    if (slack_api_token.size() > 0)
+    {
 		try
 		{
-	        auto& slack = slack::create(api_token);
+	        auto& slack = slack::create(slack_api_token);
             slack.chat.channel = slack_channel;
 	        slack.chat.as_user = true;
-            slack.chat.postMessage(mess);
+            slack.chat.postMessage(slack_mess);
 		}
 		catch(const std::exception& ex)
 		{
 			std::cerr << "JournalParser: slack error: " << ex.what() << std::endl;
 		}
-	}
-	else
-	{
-		std::cerr << "JournalParser: cannot open \"" << config_file << "\"" << std::endl;
-	}
+    }
+    else
+    {
+		std::cerr << "JournalParser: no slack token" << std::endl;
+    }
+    if (teams_url.size() > 0)
+    {
+        try
+        {
+            CURL *curl = curl_easy_init();
+            if (curl == NULL)
+            {
+                throw std::runtime_error("curl init error");
+            }
+            curl_easy_setopt(curl, CURLOPT_URL, teams_url.c_str());
+            struct curl_slist *headers = NULL;
+            headers = curl_slist_append(headers, "Content-Type: application/json");
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+            escapeJSON(teams_mess);
+            std::string jsonstr = std::string("{\"text\":\"") + teams_mess + "\"}";
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonstr.c_str());
+            curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
+            CURLcode res = curl_easy_perform(curl);
+            curl_slist_free_all(headers);
+            curl_easy_cleanup(curl);
+            if (res != CURLE_OK)
+            {
+                throw std::runtime_error(std::string("curl_easy_perform() failed: ") + curl_easy_strerror(res));
+            }
+        }
+        catch(const std::exception& ex)
+        {
+            std::cerr << "JournalParser: teams error: " << ex.what() << std::endl;
+        }
+    }
+    else
+    {
+		std::cerr << "JournalParser: no teams URL" << std::endl;
+    }
 }
 
 /**
@@ -305,20 +361,22 @@ int createJournalFile(const std::string& file_prefix, const std::string& run_num
 	char main_entry_xpath[128];
 	sprintf(main_entry_xpath, "/NXroot/NXentry[@name='%s%08d']", inst_name.c_str(), atoi(run_number.c_str()));
     pugi::xpath_node main_entry = doc.select_single_node(main_entry_xpath);
-	std::ostringstream mess;
+	std::ostringstream slack_mess, teams_mess;
 	pugi::xml_node entry = main_entry.node();
 	// we need to have title in a ``` so if it contains markdown like
 	// characters they are not interpreted
-	const char* collect_mode = (atof(getJV(entry, "event_mode").c_str()) > 0.0 ? "*event* mode" : "*histogram* mode");
+	const char* collect_mode_slack = (atof(getJV(entry, "event_mode").c_str()) > 0.0 ? "*event* mode" : "*histogram* mode");
+	const char* collect_mode_teams = (atof(getJV(entry, "event_mode").c_str()) > 0.0 ? "**event** mode" : "**histogram** mode");
 	time_t now;
 	time(&now);
 	char tbuffer[64];
 	strftime(tbuffer, sizeof(tbuffer), "%a %d %b %H:%M", localtime(&now));
 	// << getJV(entry, "monitor_sum") << "* monitor spectrum " << getJV(entry, "monitor_spectrum") << " sum, *"
-	mess << tbuffer << " Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "number_spectra") << "* spectra, *" << getJV(entry, "number_periods") << "* periods, " << collect_mode << ", *" << getJV(entry, "total_mevents") << "* total DAE MEvents) ```" << getJV(entry, "title") << "```";
-	std::cerr << mess.str() << std::endl;
+	slack_mess << tbuffer << " Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "number_spectra") << "* spectra, *" << getJV(entry, "number_periods") << "* periods, " << collect_mode_slack << ", *" << getJV(entry, "total_mevents") << "* total DAE MEvents) ```" << getJV(entry, "title") << "```";
+	teams_mess << tbuffer << " Run **" << getJV(entry, "run_number") << "** finished (**" << getJV(entry, "proton_charge") << "** uAh, **" << getJV(entry, "good_frames") << "** frames, **" << getJV(entry, "duration") << "** seconds, **" << getJV(entry, "number_spectra") << "** spectra, **" << getJV(entry, "number_periods") << "** periods, " << collect_mode_teams << ", **" << getJV(entry, "total_mevents") << "** total DAE MEvents) ```" << getJV(entry, "title") << "```";
+	std::cerr << slack_mess.str() << std::endl;
 
-	sendSlackMessage(inst_name, mess.str());
+	sendSlackAndTeamsMessage(inst_name, slack_mess.str(), teams_mess.str());
 	
 	return writeToDatabase(entry);
 }
