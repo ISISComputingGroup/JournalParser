@@ -24,13 +24,13 @@ endif
 # specify all source files to be compiled and added to the library
 JournalParserSup_SRCS += JournalParserSup.cpp
 
-JournalParserSup_LIBS += pugixml
+JournalParserSup_LIBS += pugixml libjson
 JournalParserSup_LIBS_WIN32 += libcurl
 JournalParserSup_SYS_LIBS_Linux += curl
 JournalParserSup_LIBS += $(EPICS_BASE_IOC_LIBS) $(MYSQLLIB)
 
 JournalParser_LIBS += JournalParserSup $(MYSQLLIB) utilities
-JournalParser_LIBS += pugixml zlib
+JournalParser_LIBS += pugixml zlib libjson
 JournalParser_LIBS_WIN32 += libcurl
 JournalParser_SYS_LIBS_WIN32 += wldap32 crypt32 Normaliz
 JournalParser_SYS_LIBS_Linux += curl

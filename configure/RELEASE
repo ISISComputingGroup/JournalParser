@@ -12,3 +12,4 @@ PUGIXML=$(SUPPORT)/pugixml/master
 SLACKING=$(EPICS_ROOT)/libraries/master/slacking
 UTILITIES=$(SUPPORT)/utilities/master
 ZLIB=$(SUPPORT)/zlib/master
+LIBJSON=$(SUPPORT)/libjson/master
