@@ -120,7 +120,7 @@ static std::string exeCWD()
     return std::string(buffer).substr(0, pos);
 }
 
-static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_mess, std::string teams_mess)
+static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_mess, std::string teams_mess, std::string summ_mess)
 {
 	boost::to_lower(inst_name);
 	std::string slack_channel = "#journal_" + inst_name;
@@ -171,7 +171,8 @@ static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_me
             headers = curl_slist_append(headers, "Content-Type: application/json");
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
             escapeJSON(teams_mess);
-            std::string jsonstr = std::string("{\"text\":\"") + teams_mess + "\"}";
+            escapeJSON(summ_mess);
+            std::string jsonstr = std::string("{\"text\":\"") + teams_mess + "\", \"summary\":\"" + summ_mess +  "\"}";
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonstr.c_str());
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
@@ -361,7 +362,7 @@ int createJournalFile(const std::string& file_prefix, const std::string& run_num
 	char main_entry_xpath[128];
 	sprintf(main_entry_xpath, "/NXroot/NXentry[@name='%s%08d']", inst_name.c_str(), atoi(run_number.c_str()));
     pugi::xpath_node main_entry = doc.select_single_node(main_entry_xpath);
-	std::ostringstream slack_mess, teams_mess;
+	std::ostringstream slack_mess, teams_mess, summ_mess;
 	pugi::xml_node entry = main_entry.node();
 	// we need to have title in a ``` so if it contains markdown like
 	// characters they are not interpreted
@@ -375,8 +376,10 @@ int createJournalFile(const std::string& file_prefix, const std::string& run_num
 	slack_mess << tbuffer << " Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "number_spectra") << "* spectra, *" << getJV(entry, "number_periods") << "* periods, " << collect_mode_slack << ", *" << getJV(entry, "total_mevents") << "* total DAE MEvents) ```" << getJV(entry, "title") << "```";
 	teams_mess << tbuffer << " Run **" << getJV(entry, "run_number") << "** finished (**" << getJV(entry, "proton_charge") << "** uAh, **" << getJV(entry, "good_frames") << "** frames, **" << getJV(entry, "duration") << "** seconds, **" << getJV(entry, "number_spectra") << "** spectra, **" << getJV(entry, "number_periods") << "** periods, " << collect_mode_teams << ", **" << getJV(entry, "total_mevents") << "** total DAE MEvents) ```" << getJV(entry, "title") << "```";
 	std::cerr << slack_mess.str() << std::endl;
+    
+    summ_mess << getJV(entry, "run_number") << ": " << getJV(entry, "title");
 
-	sendSlackAndTeamsMessage(inst_name, slack_mess.str(), teams_mess.str());
+	sendSlackAndTeamsMessage(inst_name, slack_mess.str(), teams_mess.str(), summ_mess.str());
 	
 	return writeToDatabase(entry);
 }
