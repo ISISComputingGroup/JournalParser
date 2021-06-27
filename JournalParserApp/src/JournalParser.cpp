@@ -27,6 +27,7 @@
 #include <errlog.h>
 #include <iocsh.h>
 #include <epicsExit.h>
+#include <shareLib.h>
 
 #include "JournalParserSup.h"
 
