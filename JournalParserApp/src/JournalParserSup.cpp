@@ -283,17 +283,17 @@ static int writeToDatabase(pugi::xml_node& entry, sql::PreparedStatement *prep_s
 	}
 	catch (sql::SQLException &e)
 	{
-        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
+        fprintf(stderr, "JournalParser: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
         return -1;
 	}
 	catch (std::runtime_error &e)
 	{
-        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: %s\n", e.what());
+        fprintf(stderr, "JournalParser: MySQL ERR: %s\n", e.what());
         return -1;
 	}
     catch(...)
     {
-        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
+        fprintf(stderr, "JournalParser: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
         return -1;
     }
 	return 0;
@@ -315,11 +315,11 @@ static void writeSlackEntry(pugi::xml_node& entry, const std::string& inst_name)
 	// << getJV(entry, "monitor_sum") << "* monitor spectrum " << getJV(entry, "monitor_spectrum") << " sum, *"
 	slack_mess << tbuffer << " Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "number_spectra") << "* spectra, *" << getJV(entry, "number_periods") << "* periods, " << collect_mode_slack << ", *" << getJV(entry, "total_mevents") << "* total DAE MEvents) ```" << getJV(entry, "title") << "```";
 	teams_mess << tbuffer << " Run **" << getJV(entry, "run_number") << "** finished (**" << getJV(entry, "proton_charge") << "** uAh, **" << getJV(entry, "good_frames") << "** frames, **" << getJV(entry, "duration") << "** seconds, **" << getJV(entry, "number_spectra") << "** spectra, **" << getJV(entry, "number_periods") << "** periods, " << collect_mode_teams << ", **" << getJV(entry, "total_mevents") << "** total DAE MEvents) ```" << getJV(entry, "title") << "```";
-	std::cerr << slack_mess.str() << std::endl;
+	std::cout << slack_mess.str() << std::endl;
     
     summ_mess << getJV(entry, "run_number") << ": " << getJV(entry, "title");
 
-	sendSlackAndTeamsMessage(inst_name, slack_mess.str(), teams_mess.str(), summ_mess.str());
+	//sendSlackAndTeamsMessage(inst_name, slack_mess.str(), teams_mess.str(), summ_mess.str());
 	
 }
 
@@ -356,17 +356,17 @@ static int writeEntries(pugi::xpath_node_set& entries, const std::string& inst_n
     }
 	catch (sql::SQLException &e)
 	{
-        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
+        fprintf(stderr, "JournalParser: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
         return -1;
 	}
 	catch (std::runtime_error &e)
 	{
-        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: %s\n", e.what());
+        fprintf(stderr, "JournalParser: MySQL ERR: %s\n", e.what());
         return -1;
 	}
     catch(...)
     {
-        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
+        fprintf(stderr, "JournalParser: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
         return -1;
     }
     if (count == 0) {
