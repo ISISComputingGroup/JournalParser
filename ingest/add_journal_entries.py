@@ -17,6 +17,7 @@ To use:
 """
 
 INGEST_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = INGEST_DIR
 JOURNAL_PARSER_DIR = os.path.abspath(os.path.join(INGEST_DIR, "..", "bin", "windows-x64"))
 JOURNAL_PARSER_CONFIG_FILE = os.path.join(JOURNAL_PARSER_DIR, "JournalParser.conf")
 JOURNAL_PARSER = os.path.join(JOURNAL_PARSER_DIR, "JournalParser.exe")
@@ -49,19 +50,26 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--instrument', help="Specify the instrument to run on, e.g. ENGINX")
     parser.add_argument('-host', '--hostname', help="Specify the instrument hostname, e.g. NDXENGINX")
     parser.add_argument('-f', '--files', help="Specify a list of files to add", nargs="+", default=None)
+    parser.add_argument('-d', '--dir', help="Directory to ingest", default=None)
+
     arguments = parser.parse_args()
 
     instrument_name = arguments.instrument
     computer_name = arguments.hostname
 
+    if arguments.dir is not None:
+        DATA_DIR = arguments.dir
     if arguments.files is None:
-        files = [f for f in os.listdir(INGEST_DIR) if f.startswith(JOURNAL_PREFIX)]
+        files = [f for f in os.listdir(DATA_DIR) if f.startswith(JOURNAL_PREFIX)]
     else:
         files = arguments.files
 
     with temporarily_rename_config_file():
         for filename in files:
             year_and_cycle = filename[len(JOURNAL_PREFIX):-len(".xml")]
+            # exclude journal_main.xml as it is a top level index
+            if year_and_cycle == "main":
+                continue
 
             try:
                 print("\n\n-----\nParsing {}\n-----\n\n".format(filename))
@@ -72,7 +80,7 @@ if __name__ == "__main__":
                     run_number = int(run.attrib['name'][len(instrument_name):])
 
                     run_journal_parser(instrument_name, "{:08d}".format(run_number), "cycle_{}".format(year_and_cycle),
-                                       '"{}"'.format(INGEST_DIR), computer_name)
+                                       '"{}"'.format(DATA_DIR), computer_name)
             except Exception as e:
                 print("Couldn't load data from '{}': {} {}".format(filename, e.__class__.__name__, e))
                 raise
