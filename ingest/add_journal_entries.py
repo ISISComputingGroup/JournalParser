@@ -75,8 +75,11 @@ if __name__ == "__main__":
 
             try:
                 print("\n\n-----\nParsing {} from {}\n-----\n\n".format(filename, DATA_DIR))
-
                 tree = ET.parse(os.path.join(DATA_DIR, filename))
+            except Exception as e:
+                print("Malformed data from '{}': {} {}".format(filename, e.__class__.__name__, e))
+            try:
+#                tree = ET.parse(os.path.join(DATA_DIR, filename))
 #                for run in tree.getroot():
 #                    print(".", end="")
 #                    run_number = int(run.attrib['name'][len(instrument_name):])
