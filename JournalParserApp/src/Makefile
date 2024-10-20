@@ -19,7 +19,7 @@ USR_CPPFLAGS_WIN32 += -DNOMINMAX
 
 ifeq ($(STATIC_BUILD),YES)
 USR_CPPFLAGS += -DCURL_STATICLIB -DSTATIC_CONCPP
-BIN_INSTALLS_WIN32 += $(MYSQL)/bin/$(EPICS_HOST_ARCH)/*.dll
+BIN_INSTALLS_WIN32 += $(wildcard $(MYSQL)/bin/$(EPICS_HOST_ARCH)/*.dll)
 endif
 
 # specify all source files to be compiled and added to the library
