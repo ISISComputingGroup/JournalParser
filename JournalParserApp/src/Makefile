@@ -37,6 +37,14 @@ JournalParser_SYS_LIBS_WIN32 += wldap32 crypt32 Normaliz
 JournalParser_SYS_LIBS_Linux += curl
 JournalParser_LIBS += $(EPICS_BASE_IOC_LIBS)
 
+BIN_INSTALLS_WIN32 += $(MYSQL)/bin/$(EPICS_HOST_ARCH)/*.dll
+
+# ifeq ($(SHARED_LIBRARIES),YES)
+# USR_CPPFLAGS_WIN32 += -DSQLITE_API=__declspec(dllimport)
+# else
+# #USR_CXXFLAGS += -DCPPCONN_LIB_BUILD
+# endif
+
 #===========================
 
 include $(TOP)/configure/RULES

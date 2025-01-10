@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import argparse
 import os
+import glob
 import subprocess
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
@@ -22,11 +23,15 @@ JOURNAL_PARSER_DIR = os.path.abspath(os.path.join(INGEST_DIR, "..", "bin", "wind
 JOURNAL_PARSER_CONFIG_FILE = os.path.join(JOURNAL_PARSER_DIR, "JournalParser.conf")
 JOURNAL_PARSER = os.path.join(JOURNAL_PARSER_DIR, "JournalParser.exe")
 JOURNAL_PREFIX = "journal_"
+JOURNAL_SUFFIX = ".xml"
+JOURNAL_GLOB = JOURNAL_PREFIX + "[0-9]*_[0-9]*" + JOURNAL_SUFFIX
 
 
 def run_journal_parser(*args):
     with open(os.devnull, "w") as devnull:
-        subprocess.check_call(" ".join([JOURNAL_PARSER] + list(args)), stderr=devnull, stdout=devnull)
+        #subprocess.check_call(" ".join([JOURNAL_PARSER] + list(args)), stderr=devnull, stdout=devnull)
+        #subprocess.check_call(" ".join([JOURNAL_PARSER] + list(args)))
+        subprocess.call(" ".join([JOURNAL_PARSER] + list(args)), stdout=devnull)
 
 
 @contextmanager
@@ -60,26 +65,28 @@ if __name__ == "__main__":
     if arguments.dir is not None:
         DATA_DIR = arguments.dir
     if arguments.files is None:
-        files = [f for f in os.listdir(DATA_DIR) if f.startswith(JOURNAL_PREFIX)]
+        files = glob.glob(JOURNAL_GLOB, root_dir=DATA_DIR)
     else:
         files = arguments.files
 
     with temporarily_rename_config_file():
         for filename in files:
-            year_and_cycle = filename[len(JOURNAL_PREFIX):-len(".xml")]
-            # exclude journal_main.xml as it is a top level index
-            if year_and_cycle == "main":
-                continue
+            year_and_cycle = filename[len(JOURNAL_PREFIX):-len(JOURNAL_SUFFIX)]
 
             try:
-                print("\n\n-----\nParsing {}\n-----\n\n".format(filename))
+                print("\n\n-----\nParsing {} from {}\n-----\n\n".format(filename, DATA_DIR))
+                tree = ET.parse(os.path.join(DATA_DIR, filename))
+            except Exception as e:
+                print("Malformed data from '{}': {} {}".format(filename, e.__class__.__name__, e))
+            try:
+#                tree = ET.parse(os.path.join(DATA_DIR, filename))
+#                for run in tree.getroot():
+#                    print(".", end="")
+#                    run_number = int(run.attrib['name'][len(instrument_name):])
 
-                tree = ET.parse(filename)
-                for run in tree.getroot():
-                    print(".", end="")
-                    run_number = int(run.attrib['name'][len(instrument_name):])
-
-                    run_journal_parser(instrument_name, "{:08d}".format(run_number), "cycle_{}".format(year_and_cycle),
+#                    run_journal_parser(instrument_name, "{:08d}".format(run_number), "cycle_{}".format(year_and_cycle),
+#                                       '"{}"'.format(DATA_DIR), computer_name)
+                run_journal_parser(instrument_name, "*", "cycle_{}".format(year_and_cycle),
                                        '"{}"'.format(DATA_DIR), computer_name)
             except Exception as e:
                 print("Couldn't load data from '{}': {} {}".format(filename, e.__class__.__name__, e))
