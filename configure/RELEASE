@@ -1,15 +1,16 @@
-# optional extra local definitions here
--include $(TOP)/configure/RELEASE.private
-
-include $(TOP)/../../../ISIS_CONFIG
--include $(TOP)/../../../ISIS_CONFIG.$(EPICS_HOST_ARCH)
-
 # Local dependencies
 BOOST=$(EPICS_ROOT)/libraries/master/boost
 CURL=$(SUPPORT)/curl/master
+OPENSSL=$(SUPPORT)/OpenSSL/master
 MYSQL=$(SUPPORT)/MySQL/master
 PUGIXML=$(SUPPORT)/pugixml/master
 SLACKING=$(EPICS_ROOT)/libraries/master/slacking
 UTILITIES=$(SUPPORT)/utilities/master
 ZLIB=$(SUPPORT)/zlib/master
 LIBJSON=$(SUPPORT)/libjson/master
+
+# optional extra local definitions here
+-include $(TOP)/configure/RELEASE.private
+
+include $(TOP)/../../../ISIS_CONFIG
+-include $(TOP)/../../../ISIS_CONFIG.$(EPICS_HOST_ARCH)
