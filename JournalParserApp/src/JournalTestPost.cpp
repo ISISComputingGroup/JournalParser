@@ -35,20 +35,16 @@
 
 int main(int argc, char* argv[])
 {
-	time_t time1, time2;
-	time(&time1);
-	if (argc < 6)
-	{
-		std::cerr << "JournalParser: Not enough arguments" << std::endl;
-		return -1;
-	}
-	std::string file_prefix = argv[1]; // could be inst name or inst short name
-	std::string run_number = argv[2];  // 5 or 8 digit with leading zeros, or * to do all in cycle file
-	std::string isis_cycle = argv[3];  // e.g. cycle_14_2
-	std::string journal_dir = argv[4];  // e.g. c:\data\export only
-	std::string computer_name = argv[5];  // e.g. NDXGEM
-    int stat = parseJournal(file_prefix, run_number, isis_cycle, journal_dir, computer_name);
-	time(&time2);
-	std::cout << "JournalParser: took " << difftime(time2, time1) << " seconds with final status " << stat << std::endl;
-	return stat;
+    if (argc < 5)
+    {
+        std::cerr << "JournalTestPost: Not enough arguments: inst_name slack_message teams_message summ_message" << std::endl;
+        return -1;
+    }
+    std::string inst_name = argv[1]; // could be inst name or inst short name
+    std::string slack_mess = argv[2];
+    std::string teams_mess = argv[3];
+    std::string summ_mess = argv[4];
+
+    sendSlackAndTeamsMessage(inst_name, slack_mess, teams_mess, summ_mess);
+    return 0;
 }

@@ -120,7 +120,7 @@ static std::string exeCWD()
     return std::string(buffer).substr(0, pos);
 }
 
-static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_mess, std::string teams_mess, std::string summ_mess)
+void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_mess, std::string teams_mess, std::string summ_mess)
 {
 	boost::to_lower(inst_name);
 	std::string slack_channel = "#journal_" + inst_name;
@@ -147,6 +147,7 @@ static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_me
             slack.chat.channel = slack_channel;
 	        slack.chat.as_user = true;
             slack.chat.postMessage(slack_mess);
+            std::cout << "JournalParser: posted to slack" << std::endl;
 		}
 		catch(const std::exception& ex)
 		{
@@ -177,6 +178,7 @@ static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_me
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
             curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
+            curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
             CURLcode res = curl_easy_perform(curl);
             curl_slist_free_all(headers);
             curl_easy_cleanup(curl);
@@ -184,6 +186,7 @@ static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_me
             {
                 throw std::runtime_error(std::string("curl_easy_perform() failed: ") + curl_easy_strerror(res));
             }
+            std::cout << "JournalParser: posted to teams" << std::endl;
         }
         catch(const std::exception& ex)
         {
@@ -196,73 +199,75 @@ static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_me
     }
 }
 
+
+
+// List of items to extract from XML.
+// Should be in the same order and same amount of things as the columns in the database.
+const char* xml_names[][2] = {
+    { "run_number",             "0" },
+    {"title",                   "" },
+    {"start_time",              "" },
+    {"duration",                "0" },
+    {"proton_charge",           "0.0" },
+    {"experiment_identifier",   "" },
+    {"user_name",               "" },
+    {"simulation_mode",         "" },
+    {"local_contact",           "" },
+    {"user_institute",          "" },
+    {"instrument_name",         "" },
+    {"sample_id",               "" },
+    {"measurement_first_run",   "0" },
+    {"measurement_id",          "" },
+    {"measurement_label",       "" },
+    {"measurement_type",        "" },
+    {"measurement_subid",       "" },
+    {"end_time",                "" },
+    {"raw_frames",              "0" },
+    {"good_frames",             "0" },
+    {"number_periods",          "0" },
+    {"number_spectra",          "0" },
+    {"number_detectors",        "0" },
+    {"number_time_regimes",     "0" },
+    {"frame_sync",              "" },
+    {"icp_version",             "" },
+    {"detector_table_file",     "" },
+    {"spectra_table_file",      "" },
+    {"wiring_table_file",       "" },
+    {"monitor_spectrum",        "0" },
+    {"monitor_sum",             "0" },
+    {"total_mevents",           "0.0" },
+    {"comment",                 "" },
+    {"field_label",             "" },
+    {"instrument_geometry",     "" },
+    {"script_name",             "" },
+    {"sample_name",             "" },
+    {"sample_orientation",      "" },
+    {"temperature_label",       "" },
+    {"npratio_average",         "0.0" },
+    {"isis_cycle",              "" },
+    {"seci_config",             "" },
+    {"event_mode",              "0.0" }
+};
+
+const int number_of_xml_elements = sizeof(xml_names) / (2 * sizeof(const char*)); 
+
 /**
  * Writes to the database based on the contents of an XML node.
  *
  * Args: 
  *     entry: The XML node representing the entry to be written to the database.
+ *     prep_stmt: prepared mysql statement to use
  *
  * Returns: 
  *     0 if successful, non-zero if unsuccessful.
  */
-int writeToDatabase(pugi::xml_node& entry)
-{
-	
-	// List of items to extract from XML.
-	// Should be in the same order and same amount of things as the columns in the database.
-	const char* xml_names[][2] = {
-		{ "run_number",             "0" },
-		{"title",                   "" },
-		{"start_time",              "" },
-		{"duration",                "0" },
-		{"proton_charge",           "0.0" },
-		{"experiment_identifier",   "" },
-		{"user_name",               "" },
-		{"simulation_mode",         "" },
-		{"local_contact",           "" },
-		{"user_institute",          "" },
-		{"instrument_name",         "" },
-		{"sample_id",               "" },
-		{"measurement_first_run",   "0" },
-		{"measurement_id",          "" },
-		{"measurement_label",       "" },
-		{"measurement_type",        "" },
-		{"measurement_subid",       "" },
-		{"end_time",                "" },
-		{"raw_frames",              "0" },
-		{"good_frames",             "0" },
-		{"number_periods",          "0" },
-		{"number_spectra",          "0" },
-		{"number_detectors",        "0" },
-		{"number_time_regimes",     "0" },
-		{"frame_sync",              "" },
-		{"icp_version",             "" },
-        {"detector_table_file",     "" },
-        {"spectra_table_file",      "" },
-        {"wiring_table_file",       "" },
-        {"monitor_spectrum",        "0" },
-        {"monitor_sum",             "0" },
-        {"total_mevents",           "0.0" },
-        {"comment",                 "" },
-        {"field_label",             "" },
-        {"instrument_geometry",     "" },
-        {"script_name",             "" },
-        {"sample_name",             "" },
-        {"sample_orientation",      "" },
-        {"temperature_label",       "" },
-        {"npratio_average",         "0.0" },
-        {"isis_cycle",              "" },
-        {"seci_config",             "" },
-		{"event_mode",              "0.0" }
-	};
-	
-	const int number_of_elements = sizeof(xml_names) / (2 * sizeof(const char*)); 
-
-	std::string data[number_of_elements];
+static int writeToDatabase(pugi::xml_node& entry, sql::PreparedStatement *prep_stmt)
+{	
+	std::string data[number_of_xml_elements];
 	
 	// Get value of XML node and trim whitespace.
 	int i;
-	for (i=0; i<number_of_elements; i++)
+	for (i=0; i<number_of_xml_elements; i++)
 	{
 		data[i] = trimXmlNode(entry, xml_names[i][0]);
 		if (data[i] == "")
@@ -273,47 +278,109 @@ int writeToDatabase(pugi::xml_node& entry)
 	
 	try
 	{
-		sql::Driver * mysql_driver = sql::mysql::get_driver_instance();
-		std::auto_ptr< sql::Connection > con(mysql_driver->connect("localhost", "journal", "$journal"));
-		std::auto_ptr<sql::Statement> stmt(con->createStatement());
-		con->setAutoCommit(0);
-		con->setSchema("journal");
-		sql::PreparedStatement *prep_stmt;
-		
-		std::string query ("INSERT INTO journal_entries VALUES (");
-		// Loop to number_of_elements-1 because last "?" should not have a trailing comma.
-		for(i=0; i<number_of_elements-1; i++)
-		{
-			query.append("?, ");
-		}
-		query.append("?)");
-		
-		prep_stmt = con->prepareStatement(query);
-
-		for (i=0; i<number_of_elements; i++) 
+		for (i=0; i<number_of_xml_elements; i++) 
 		{
 			prep_stmt->setString(i+1, data[i]);
-		}
-		
+		}	
 		prep_stmt->execute();
-		con->commit();
 	}
 	catch (sql::SQLException &e)
 	{
-        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
+        fprintf(stderr, "JournalParser: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
         return -1;
 	}
 	catch (std::runtime_error &e)
 	{
-        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: %s\n", e.what());
+        fprintf(stderr, "JournalParser: MySQL ERR: %s\n", e.what());
         return -1;
 	}
     catch(...)
     {
-        errlogSevPrintf(errlogMinor, "JournalParser: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
+        fprintf(stderr, "JournalParser: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
         return -1;
     }
 	return 0;
+}
+
+
+static void writeSlackEntry(pugi::xml_node& entry, const std::string& inst_name)
+{
+    static int journalparser_nomessage = (getenv("JOURNALPARSER_NOMESSAGE") != NULL ? atoi(getenv("JOURNALPARSER_NOMESSAGE")) : 0); 
+	std::ostringstream slack_mess, teams_mess, summ_mess;
+	// we need to have title in a ``` so if it contains markdown like
+	// characters they are not interpreted
+	const char* collect_mode_slack = (atof(getJV(entry, "event_mode").c_str()) > 0.0 ? "*event* mode" : "*histogram* mode");
+	const char* collect_mode_teams = (atof(getJV(entry, "event_mode").c_str()) > 0.0 ? "**event** mode" : "**histogram** mode");
+	time_t now;
+	time(&now);
+	char tbuffer[64];
+	strftime(tbuffer, sizeof(tbuffer), "%a %d %b %H:%M", localtime(&now));
+	// << getJV(entry, "monitor_sum") << "* monitor spectrum " << getJV(entry, "monitor_spectrum") << " sum, *"
+	slack_mess << tbuffer << " Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "number_spectra") << "* spectra, *" << getJV(entry, "number_periods") << "* periods, " << collect_mode_slack << ", *" << getJV(entry, "total_mevents") << "* total DAE MEvents) ```" << getJV(entry, "title") << "```";
+	teams_mess << tbuffer << " Run **" << getJV(entry, "run_number") << "** finished (**" << getJV(entry, "proton_charge") << "** uAh, **" << getJV(entry, "good_frames") << "** frames, **" << getJV(entry, "duration") << "** seconds, **" << getJV(entry, "number_spectra") << "** spectra, **" << getJV(entry, "number_periods") << "** periods, " << collect_mode_teams << ", **" << getJV(entry, "total_mevents") << "** total DAE MEvents) ```" << getJV(entry, "title") << "```";
+	std::cout << slack_mess.str() << std::endl;
+    
+    summ_mess << getJV(entry, "run_number") << ": " << getJV(entry, "title");
+    if (journalparser_nomessage) {
+        std::cout << "JOURNALPARSER_NOMESSAGE env variable defined - skipping slack/teams send" << std::endl;
+    } else {
+        sendSlackAndTeamsMessage(inst_name, slack_mess.str(), teams_mess.str(), summ_mess.str());
+    }
+}
+
+static int writeEntries(pugi::xpath_node_set& entries, const std::string& inst_name)
+{
+    int stat = 0, count = 0;
+    try {
+        sql::Driver * mysql_driver = sql::mysql::get_driver_instance();
+        std::auto_ptr< sql::Connection > con(mysql_driver->connect("localhost", "journal", "$journal"));
+	    con->setAutoCommit(0);
+	    con->setSchema("journal");
+
+        std::auto_ptr<sql::Statement> stmt(con->createStatement());
+	    sql::PreparedStatement *prep_stmt;
+		
+	    std::string query ("INSERT INTO journal_entries VALUES (");
+	    // Loop to number_of_elements-1 because last "?" should not have a trailing comma.
+	    for(int i=0; i<number_of_xml_elements-1; i++)
+	    {
+		    query.append("?, ");
+	    }
+	    query.append("?)");
+	    prep_stmt = con->prepareStatement(query);
+    
+        for (pugi::xpath_node_set::const_iterator it = entries.begin(); it != entries.end(); ++it)
+        {
+            pugi::xpath_node node = *it;
+            pugi::xml_node entry = node.node();
+            writeSlackEntry(entry, inst_name);
+            stat |= writeToDatabase(entry, prep_stmt);
+            ++count;
+        }
+    	con->commit();
+    }
+	catch (sql::SQLException &e)
+	{
+        fprintf(stderr, "JournalParser: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
+        return -1;
+	}
+	catch (std::runtime_error &e)
+	{
+        fprintf(stderr, "JournalParser: MySQL ERR: %s\n", e.what());
+        return -1;
+	}
+    catch(...)
+    {
+        fprintf(stderr, "JournalParser: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
+        return -1;
+    }
+    if (count == 0) {
+		std::cerr << "JournalParser: Cannot find entry in journal file"  << std::endl;
+        return -1;
+    } else if (stat == -1) {
+        std::cerr << "JournalParser: Error writing one of more entries to DB" << std::endl;
+    }
+    return stat;
 }
 
 int createJournalFile(const std::string& file_prefix, const std::string& run_number, const std::string& isis_cycle, const std::string& journal_dir, const std::string& computer_name, const std::string inst_name)
@@ -360,30 +427,15 @@ int createJournalFile(const std::string& file_prefix, const std::string& run_num
 		return -1;
     }
 	char main_entry_xpath[128];
-	sprintf(main_entry_xpath, "/NXroot/NXentry[@name='%s%08d']", inst_name.c_str(), atoi(run_number.c_str()));
-    pugi::xpath_node main_entry = doc.select_single_node(main_entry_xpath);
-	std::ostringstream slack_mess, teams_mess, summ_mess;
-	pugi::xml_node entry = main_entry.node();
-	// we need to have title in a ``` so if it contains markdown like
-	// characters they are not interpreted
-	const char* collect_mode_slack = (atof(getJV(entry, "event_mode").c_str()) > 0.0 ? "*event* mode" : "*histogram* mode");
-	const char* collect_mode_teams = (atof(getJV(entry, "event_mode").c_str()) > 0.0 ? "**event** mode" : "**histogram** mode");
-	time_t now;
-	time(&now);
-	char tbuffer[64];
-	strftime(tbuffer, sizeof(tbuffer), "%a %d %b %H:%M", localtime(&now));
-	// << getJV(entry, "monitor_sum") << "* monitor spectrum " << getJV(entry, "monitor_spectrum") << " sum, *"
-	slack_mess << tbuffer << " Run *" << getJV(entry, "run_number") << "* finished (*" << getJV(entry, "proton_charge") << "* uAh, *" << getJV(entry, "good_frames") << "* frames, *" << getJV(entry, "duration") << "* seconds, *" << getJV(entry, "number_spectra") << "* spectra, *" << getJV(entry, "number_periods") << "* periods, " << collect_mode_slack << ", *" << getJV(entry, "total_mevents") << "* total DAE MEvents) ```" << getJV(entry, "title") << "```";
-	teams_mess << tbuffer << " Run **" << getJV(entry, "run_number") << "** finished (**" << getJV(entry, "proton_charge") << "** uAh, **" << getJV(entry, "good_frames") << "** frames, **" << getJV(entry, "duration") << "** seconds, **" << getJV(entry, "number_spectra") << "** spectra, **" << getJV(entry, "number_periods") << "** periods, " << collect_mode_teams << ", **" << getJV(entry, "total_mevents") << "** total DAE MEvents) ```" << getJV(entry, "title") << "```";
-	std::cerr << slack_mess.str() << std::endl;
-    
-    summ_mess << getJV(entry, "run_number") << ": " << getJV(entry, "title");
-
-	sendSlackAndTeamsMessage(inst_name, slack_mess.str(), teams_mess.str(), summ_mess.str());
-	
-	return writeToDatabase(entry);
+    if (run_number == "*") {
+	    sprintf(main_entry_xpath, "/NXroot/NXentry[starts-with(@name, '%s')]", inst_name.c_str());
+    } else {
+        sprintf(main_entry_xpath, "/NXroot/NXentry[@name='%s%08d']", inst_name.c_str(), atoi(run_number.c_str()));
+    }
+    pugi::xpath_node_set entries = doc.select_nodes(main_entry_xpath);
+    return writeEntries(entries, inst_name);
 }
-
+    
 /*
  * Parses a journal file.
  *

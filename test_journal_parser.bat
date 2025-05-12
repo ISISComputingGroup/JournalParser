@@ -1,5 +1,8 @@
 REM posts a test message to journal_demo on slack and test channel on ISIS Instrument and beam status Teams
 setlocal
+REM you can disable slack/teams messages with this
+REM set "JOURNALPARSER_NOMESSAGE=1"
+
 set "PATH=%PATH%;%EPICS_ROOT%\support\pugixml\master\bin\%EPICS_HOST_ARCH%"
 set "PATH=%PATH%;%EPICS_ROOT%\support\curl\master\bin\%EPICS_HOST_ARCH%"
 set "PATH=%PATH%;%EPICS_ROOT%\support\mysql\master\bin\%EPICS_HOST_ARCH%"

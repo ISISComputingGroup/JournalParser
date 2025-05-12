@@ -10,5 +10,7 @@
 
 epicsShareExtern int parseJournal(const std::string& file_prefix, const std::string& run_number, const std::string& isis_cycle, const std::string& journal_dir, const std::string& computer_name);
 
+epicsShareExtern void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_mess, std::string teams_mess, std::string summ_mess);
+
 #endif /* JOURNAL_PARSER_H */
 
