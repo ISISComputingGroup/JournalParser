@@ -120,7 +120,7 @@ static std::string exeCWD()
     return std::string(buffer).substr(0, pos);
 }
 
-static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_mess, std::string teams_mess, std::string summ_mess)
+void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_mess, std::string teams_mess, std::string summ_mess)
 {
 	boost::to_lower(inst_name);
 	std::string slack_channel = "#journal_" + inst_name;
@@ -147,6 +147,7 @@ static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_me
             slack.chat.channel = slack_channel;
 	        slack.chat.as_user = true;
             slack.chat.postMessage(slack_mess);
+            std::out << "JournalParser: posted to slack" << std::endl;
 		}
 		catch(const std::exception& ex)
 		{
@@ -177,6 +178,7 @@ static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_me
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
             curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
+            curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
             CURLcode res = curl_easy_perform(curl);
             curl_slist_free_all(headers);
             curl_easy_cleanup(curl);
@@ -184,6 +186,7 @@ static void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_me
             {
                 throw std::runtime_error(std::string("curl_easy_perform() failed: ") + curl_easy_strerror(res));
             }
+            std::cout << "JournalParser: posted to teams" << std::endl;
         }
         catch(const std::exception& ex)
         {
