@@ -147,7 +147,7 @@ void sendSlackAndTeamsMessage(std::string inst_name, std::string slack_mess, std
             slack.chat.channel = slack_channel;
 	        slack.chat.as_user = true;
             slack.chat.postMessage(slack_mess);
-            std::out << "JournalParser: posted to slack" << std::endl;
+            std::cout << "JournalParser: posted to slack" << std::endl;
 		}
 		catch(const std::exception& ex)
 		{
@@ -305,7 +305,7 @@ static int writeToDatabase(pugi::xml_node& entry, sql::PreparedStatement *prep_s
 
 static void writeSlackEntry(pugi::xml_node& entry, const std::string& inst_name)
 {
-
+    static int journalparser_nomessage = (getenv("JOURNALPARSER_NOMESSAGE") != NULL ? atoi(getenv("JOURNALPARSER_NOMESSAGE")) : 0); 
 	std::ostringstream slack_mess, teams_mess, summ_mess;
 	// we need to have title in a ``` so if it contains markdown like
 	// characters they are not interpreted
@@ -321,9 +321,11 @@ static void writeSlackEntry(pugi::xml_node& entry, const std::string& inst_name)
 	std::cout << slack_mess.str() << std::endl;
     
     summ_mess << getJV(entry, "run_number") << ": " << getJV(entry, "title");
-
-	//sendSlackAndTeamsMessage(inst_name, slack_mess.str(), teams_mess.str(), summ_mess.str());
-	
+    if (journalparser_nomessage) {
+        std::cout << "JOURNALPARSER_NOMESSAGE env variable defined - skipping slack/teams send" << std::endl;
+    } else {
+        sendSlackAndTeamsMessage(inst_name, slack_mess.str(), teams_mess.str(), summ_mess.str());
+    }
 }
 
 static int writeEntries(pugi::xpath_node_set& entries, const std::string& inst_name)

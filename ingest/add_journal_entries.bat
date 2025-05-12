@@ -1,5 +1,8 @@
+setlocal
 call %~dp0..\..\..\..\config_env.bat
-set "PATH=C:\Instrument\Apps\EPICS\support\pugixml\master\bin\windows-x64;C:\Instrument\Apps\EPICS\support\curl\master\bin\windows-x64;C:\Instrument\Apps\EPICS\support\MySQL\master\bin\windows-x64;%PATH%"
+
+REM disable slack/teams messages
+set "JOURNALPARSER_NOMESSAGE=1"
 
 "%PYTHON3%" -u %~dp0add_journal_entries.py %*
 

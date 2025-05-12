@@ -57,6 +57,8 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--files', help="Specify a list of files to add", nargs="+", default=None)
     parser.add_argument('-d', '--dir', help="Directory to ingest", default=None)
 
+    os.environ["JOURNALPARSER_NOMESSAGE"] = "1"
+
     arguments = parser.parse_args()
 
     instrument_name = arguments.instrument
